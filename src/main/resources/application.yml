@@ -1,0 +1,36 @@
+spring:
+  profiles:
+    active: dev
+    include: base
+  mail:
+    host: smtp.126.com
+    username: MDC_COIN_SUPPORT@126.com
+    password: mdc202002
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          socketFactory:
+            port: 465
+            class: javax.net.ssl.SSLSocketFactory
+            fallback:  false
+          starttls:
+            enable: true
+            required: true
+      port: 465
+
+---
+
+server:
+  port: 8080
+#spring基本配置，开发环境
+spring:
+  profiles: dev
+  datasource:
+    name: skcdb
+    url: jdbc:mysql://129.226.181.145:3306/skcdb?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&failOverReadOnly=false&useSSL=false&serverTimezone=CTT
+    username: root
+    password: SGC123456
+
+
