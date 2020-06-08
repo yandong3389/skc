@@ -69,10 +69,11 @@ public class ResponseResult {
 	 * @param msg
 	 * @return
 	 */
-	public static ResponseResult success(String msg){
+	public static ResponseResult success(String msg,Object data){
 		ResponseResult result=new ResponseResult();
 		result.setCode("0");
 		result.setMsg(msg);
+		result.setData(data);
 		return result;
 	}
 

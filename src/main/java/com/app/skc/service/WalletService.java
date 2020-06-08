@@ -4,7 +4,9 @@ import com.app.skc.model.Wallet;
 import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
 import com.baomidou.mybatisplus.service.IService;
+import org.web3j.crypto.CipherException;
 
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -22,14 +24,7 @@ public interface WalletService extends IService<Wallet> {
      * @param userId 用户信息
      * @return ResponseResult
      */
-    ResponseResult createWallet(int userId,String password) throws Throwable;
+    ResponseResult createWallet(String userId) throws IOException, CipherException;
 
 
-    /**
-     * 获取钱包余额
-     * @param page 分页插件
-     * @param params 查询条件
-     * @return ResponseResult
-     */
-    ResponseResult getBalance(Page page, Map<String,Object> params);
 }
