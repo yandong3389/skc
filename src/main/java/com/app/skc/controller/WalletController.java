@@ -7,7 +7,6 @@ import com.app.skc.service.WalletService;
 import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.web3j.crypto.CipherException;
 
@@ -28,7 +27,7 @@ public class WalletController {
 	 * @param walletType 钱包类型
 	 * @return
 	 */
-	@GetMapping("/query")
+	@GetMapping("/balance")
 	public ResponseResult query(String userId, String walletType){
 		return null;
 	}
@@ -88,7 +87,7 @@ public class WalletController {
 	 * @param jsonObject  userId, wallteType
 	 * @return
 	 */
-	@PostMapping("validMemoryWord")
+	@PostMapping("validMnemonic")
 	public ResponseResult validMemoryWord(@RequestBody JSONObject jsonObject){
 		return null;
 	}
