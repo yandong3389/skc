@@ -74,7 +74,7 @@ public class ScheduleTask {
                         Transfer.sendFunds(web3j, credentials, wallet.getAddress(), new BigDecimal(3), Convert.Unit.FINNEY).send();
                     }else{
                         //充值
-                        boolean flag = transfer(web3j,wallet.getPassword(),wallet.getWalletPath(),wallet.getAddress(),walletAddress.getConfigValue(),contractAddress,balance);
+                        boolean flag = transfer(web3j,null,wallet.getWalletPath(),wallet.getAddress(),walletAddress.getConfigValue(),contractAddress,balance);
                         if(flag){
                             Transaction transaction = new Transaction();
                             transaction.setCreateTime(new Date());
@@ -88,8 +88,8 @@ public class ScheduleTask {
                             //0-充值
                             transaction.setTransactionType("0");
                             transactionMapper.insert(transaction);
-                            BigDecimal oldBalance = wallet.getUstdBlance();
-                            wallet.setUstdBlance(oldBalance.add(balance));
+                       /*     BigDecimal oldBalance = wallet.getUstdBlance();
+                            wallet.setUstdBlance(oldBalance.add(balance));*/
                             walletMapper.updateById(wallet);
                         }
                     }
