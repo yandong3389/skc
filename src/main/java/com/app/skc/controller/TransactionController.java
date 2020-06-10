@@ -55,13 +55,11 @@ public class TransactionController {
 	public ResponseResult transfer(
 									 @RequestParam(required = true)String toWalletAddress,
 									 @RequestParam(required = true)String transferNumber,
-									 @RequestParam(required = true)String payPassword,
 									 @RequestParam(required = true)String userId,
-									 @RequestParam(required = true)String walletType,
-								   @RequestParam String verCode,
-								   @RequestParam String verId) {
+									 @RequestParam(required = true)String walletType)
+	{
 		try {
-			return transactionService.transETH(toWalletAddress,transferNumber,payPassword,userId,walletType,verCode,verId);
+			return transactionService.transETH(toWalletAddress,transferNumber,userId,walletType);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return ResponseResult.fail("ERR500",e.getMessage());

@@ -1,9 +1,9 @@
 package com.app.skc.enums;
 
 public enum  WallteEum {
-    ETH("01","ETH"),
-    SKC("02","SKC"),
-    USTD("03","USTD");
+    ETH("1","ETH"),
+    SKC("2","SKC"),
+    USDT("3","USDT");
     /**
      * type 钱包类型
      */

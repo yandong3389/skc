@@ -4,7 +4,9 @@ package com.app.skc.enums;
  * api 错误枚举
  */
 public enum ApiErrEnum {
-    CREATE_WALLET_FAIL("1001","创建钱包失败");
+    CREATE_WALLET_FAIL("1001","创建钱包失败"),
+    ADDRESS_WALLET_FAIL("1002","地址错误"),
+    NOT_ENOUGH_WALLET("1003","账户余额不足");
     /**
      * 描述
      */
