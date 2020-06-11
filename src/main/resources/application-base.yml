@@ -94,6 +94,6 @@ logging:
   config: classpath:logback-spring.xml
 
 web3j:
-  client-address: https://mainnet.infura.io/v3/50d1c4c05dbd472b85e4acf1cf58b01b
+  client-address: https://ropsten.infura.io/v3/2e130baab5ed43768780e3de46b44257
   admin-client: true
-  httpTimeoutSeconds: 600
+  httpTimeoutSeconds: 3000
