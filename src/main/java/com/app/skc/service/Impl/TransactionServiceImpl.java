@@ -240,7 +240,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         Transaction transaction = new Transaction();
         transaction.setCreateTime(new Date());
         transaction.setToAmount(investAmt);
-        /*transaction.setToUserId(Integer.parseInt(userId));*/
         transaction.setToWalletAddress(toAddress);
         // 3-usdt
         transaction.setToWalletType(WalletEum.USDT.getCode());
@@ -254,13 +253,13 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        String usdtCOntractAddress = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
-        BigDecimal balance = getBalance(toAddress, usdtCOntractAddress);
+        String usdtContractAdd = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
+        BigDecimal balance = getBalance(toAddress, usdtContractAdd);
         if (balance != null && balance.doubleValue() >= new Double(amount)) {
             transaction.setTransactionStatus("1");
             transactionMapper.updateById(transaction);
         } else {
-            confirm(new Date(), toAddress, usdtCOntractAddress, amount, userId, transaction.getTransactionId().toString());
+            confirm(new Date(), toAddress, usdtContractAdd, amount, userId, transaction.getTransactionId().toString());
         }
         return ResponseResult.success();
     }
