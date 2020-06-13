@@ -1,6 +1,5 @@
 package com.app.skc.service.Impl;
 
-import com.alibaba.fastjson.JSON;
 import com.app.skc.enums.*;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.TransactionMapper;
@@ -25,7 +24,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.web3j.abi.FunctionEncoder;
-import org.web3j.abi.FunctionReturnDecoder;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Function;
@@ -35,7 +33,10 @@ import org.web3j.crypto.*;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.*;
+import org.web3j.protocol.core.methods.response.EthGetBalance;
+import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
+import org.web3j.protocol.core.methods.response.EthSendTransaction;
+import org.web3j.protocol.core.methods.response.Web3ClientVersion;
 import org.web3j.utils.Convert;
 import org.web3j.utils.Numeric;
 
@@ -153,7 +154,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         BigDecimal toBalTotal = toWallet.getBalTotal();
         BigDecimal toBalAvail = toWallet.getBalAvail();
         toWallet.setBalTotal(toBalTotal.add(transAmt));
-        toWallet.setBalAvail(toBalTotal.add(transAmt));
+        toWallet.setBalAvail(toBalAvail.add(transAmt));
     }
 
     /**
