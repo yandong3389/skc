@@ -212,8 +212,8 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         }
         transaction.setToWalletAddress(toWallet.getAddress());
         transaction.setToWalletType(walletType);
-        transaction.setTransactionStatus(TransStatusEnum.SUCCESS.getCode());
-        transaction.setTransactionType(TransTypeEum.TRANSFER.getCode());
+        transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
+        transaction.setTransType(TransTypeEum.TRANSFER.getCode());
         transactionMapper.insert(transaction);
         walletMapper.updateById(fromWallet);
         walletMapper.updateById(toWallet);
@@ -244,14 +244,15 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         BigDecimal investAmt = new BigDecimal(amount);
         Transaction transaction = new Transaction();
         transaction.setCreateTime(new Date());
+        transaction.setModifyTime(new Date());
         transaction.setToAmount(investAmt);
         transaction.setToWalletAddress(toAddress);
         // 3-usdt
         transaction.setToWalletType(WalletEum.USDT.getCode());
         //0-待交易
-        transaction.setTransactionStatus("0");
+        transaction.setTransStatus(TransStatusEnum.INIT.getCode());
         //0-充值
-        transaction.setTransactionType(TransTypeEum.IN.getCode());
+        transaction.setTransType(TransTypeEum.IN.getCode());
         transactionMapper.insert(transaction);
         try {
             Thread.sleep(60000);
@@ -261,10 +262,10 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         String usdtContractAdd = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
         BigDecimal balance = walletService.getERC20Balance(toAddress, usdtContractAdd);
         if (balance != null && balance.doubleValue() >= new Double(amount)) {
-            transaction.setTransactionStatus("1");
+            transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
             transactionMapper.updateById(transaction);
         } else {
-            confirm(new Date(), toAddress, usdtContractAdd, amount, userId, transaction.getTransactionId().toString());
+            confirm(new Date(), toAddress, usdtContractAdd, amount, userId, transaction.getTransId().toString());
         }
         return ResponseResult.success();
     }
@@ -332,9 +333,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         return new BigDecimal(blanceETH.trim());
     }
 
-
-
-
     private void confirm(Date time, String fromAddress, String contractAddress, String money, String userId, String transactionId) {
         //定时第一次15分钟后执行
         System.out.println(DateUtil.getDate(DATE_FORMAT, 0, time));
@@ -373,22 +371,22 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
                                         BigDecimal lastBalance = walletService.getERC20Balance(fromAddress, contractAddress);
                                         if (lastBalance == null || lastBalance.doubleValue() <= new Double(money)) {
                                             //钱未到账，交易失败
-                                            updateTransaction(transactionId, "-1");
+                                            updateTransaction(transactionId, TransStatusEnum.FAILED.getCode());
                                         } else {
                                             //钱已到账
-                                            transact(money, wallet.getWalletPath(), wallet.getAddress(), config.getConfigValue(), "0", transactionId, "1");
+                                            transact(money, wallet.getWalletPath(), wallet.getAddress(), config.getConfigValue(), WalletEum.USDT.getCode(), transactionId, TransStatusEnum.SUCCESS.getCode());
                                         }
                                     }
                                 }, DateUtil.getDate(Calendar.HOUR_OF_DAY, 2, lastDate));
                             } else {
                                 //钱已到账
-                                transact(money, wallet.getWalletPath(), wallet.getAddress(), config.getConfigValue(), "0", transactionId, "1");
+                                transact(money, wallet.getWalletPath(), wallet.getAddress(), config.getConfigValue(), WalletEum.USDT.getCode(), transactionId, TransStatusEnum.SUCCESS.getCode());
                             }
                         }
                     }, DateUtil.getDate(Calendar.HOUR_OF_DAY, 1, date));
                 } else {
                     //钱已到账
-                    transact(money, wallet.getWalletPath(), wallet.getAddress(), config.getConfigValue(), "0", transactionId, "1");
+                    transact(money, wallet.getWalletPath(), wallet.getAddress(), config.getConfigValue(), WalletEum.USDT.getCode(), transactionId, TransStatusEnum.SUCCESS.getCode());
                 }
             }
         }, DateUtil.getDate(Calendar.MINUTE, 15, time));
@@ -406,7 +404,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     @Transactional(rollbackFor = Exception.class)
     public void updateTransaction(String transactionId, String transactionStatus) {
         Transaction transaction = transactionMapper.selectById(transactionId);
-        transaction.setTransactionStatus(transactionStatus);
+        transaction.setTransStatus(transactionStatus);
         transactionMapper.updateById(transaction);
 
     }
@@ -453,9 +451,9 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         //0-usdt
         transaction.setToWalletType("0");
         //0-交易进行中
-        transaction.setTransactionStatus("0");
+        transaction.setTransStatus("0");
         //1-提现
-        transaction.setTransactionType("1");
+        transaction.setTransType("1");
         transactionMapper.insert(transaction);
         return ResponseResult.success();
     }
