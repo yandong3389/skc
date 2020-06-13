@@ -10,6 +10,7 @@ import com.app.skc.model.system.Config;
 import com.app.skc.service.TransactionService;
 import com.app.skc.service.WalletService;
 import com.app.skc.service.system.ConfigService;
+import com.app.skc.utils.BaseUtils;
 import com.app.skc.utils.date.DateUtil;
 import com.app.skc.utils.jdbc.SqlUtils;
 import com.app.skc.utils.viewbean.Page;
@@ -243,17 +244,16 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     public ResponseResult invest(String userId, String toAddress, String amount) {
         BigDecimal investAmt = new BigDecimal(amount);
         Transaction transaction = new Transaction();
-        transaction.setTransId("ba"); // TODO
+        transaction.setTransId(BaseUtils.get64UUID());
+        transaction.setToUserId(userId);
+        transaction.setToWalletType(WalletEum.USDT.getCode());
+        transaction.setToWalletAddress(toAddress);
+        transaction.setToAmount(investAmt);
+        transaction.setTransStatus(TransStatusEnum.INIT.getCode());
+        transaction.setTransType(TransTypeEum.IN.getCode()); // 4-充值
+        transaction.setRemark(TransTypeEum.IN.getDesc());
         transaction.setCreateTime(new Date());
         transaction.setModifyTime(new Date());
-        transaction.setToAmount(investAmt);
-        transaction.setToWalletAddress(toAddress);
-        // 3-usdt
-        transaction.setToWalletType(WalletEum.USDT.getCode());
-        //0-待交易
-        transaction.setTransStatus(TransStatusEnum.INIT.getCode());
-        //0-充值
-        transaction.setTransType(TransTypeEum.IN.getCode());
         transactionMapper.insert(transaction);
         try {
             Thread.sleep(60000);
@@ -264,6 +264,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         BigDecimal balance = walletService.getERC20Balance(toAddress, usdtContractAdd);
         if (balance != null && balance.doubleValue() >= new Double(amount)) {
             transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
+            transaction.setModifyTime(new Date());
             transactionMapper.updateById(transaction);
         } else {
             confirm(new Date(), toAddress, usdtContractAdd, amount, userId, transaction.getTransId().toString());
