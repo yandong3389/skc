@@ -7,6 +7,8 @@ public enum TransStatusEnum {
     INIT("INIT", "初始(待审核)"),
     APPROVED("APPROVED", "审核通过"),
     SUCCESS("SUCCESS", "交易成功"),
+    FAILED("FAILED", "交易失败"),
+
     ;
     /**
      * 描述
