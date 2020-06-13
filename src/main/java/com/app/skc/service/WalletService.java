@@ -54,7 +54,7 @@ public interface WalletService extends IService<Wallet> {
      * @param fromPath 转账发起物理地址
      * @return
      */
-    String withdraw(String fromAddress,String toAddress,String amount,String fromPath) throws IOException, CipherException, BusinessException, ExecutionException, InterruptedException;
+    String withdraw(String fromAddress,String toAddress,BigDecimal amount,String fromPath) throws IOException, CipherException, BusinessException, ExecutionException, InterruptedException;
 
 
 

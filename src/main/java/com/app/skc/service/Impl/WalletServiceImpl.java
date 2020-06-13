@@ -156,8 +156,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public String withdraw(String fromAddress, String toAddress, String amount,String fromPath) throws BusinessException, ExecutionException, InterruptedException, IOException, CipherException {
-        BigDecimal trans = new BigDecimal(amount);
+    public String withdraw(String fromAddress, String toAddress, BigDecimal amount,String fromPath) throws BusinessException, ExecutionException, InterruptedException, IOException, CipherException {
         String transactionHash;
         BigDecimal eth = BigDecimal.ZERO;
         //判断转出地址
@@ -173,7 +172,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
         BigInteger nonce = ethGetTransactionCount.getTransactionCount();
         Address transferAddress = new Address(toAddress);
         String contractAddress = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
-        Uint256 value = new Uint256(new BigInteger(trans.multiply(eth).stripTrailingZeros().toPlainString()));
+        Uint256 value = new Uint256(new BigInteger(amount.multiply(eth).stripTrailingZeros().toPlainString()));
         List <Type> parametersList = new ArrayList <>();
         parametersList.add(transferAddress);
         parametersList.add(value);
