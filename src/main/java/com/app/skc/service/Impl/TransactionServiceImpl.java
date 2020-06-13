@@ -1,5 +1,4 @@
 package com.app.skc.service.Impl;
-
 import com.app.skc.enums.*;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.TransactionMapper;
@@ -24,27 +23,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.web3j.abi.FunctionEncoder;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Address;
-import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.generated.Uint256;
-import org.web3j.crypto.*;
+import org.web3j.crypto.CipherException;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
-import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.EthGetBalance;
-import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
-import org.web3j.protocol.core.methods.response.EthSendTransaction;
-import org.web3j.protocol.core.methods.response.Web3ClientVersion;
 import org.web3j.utils.Convert;
-import org.web3j.utils.Numeric;
-
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -74,16 +63,20 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
 
-/*
-    @Autowired
-    public TransactionServiceImpl(ConfigService configService,TransactionMapper transactionMapper,WalletMapper walletMapper){
-        this.configService = configService;
-        this.walletMapper = walletMapper;
-        this.transactionMapper = transactionMapper;
-        Config config = configService.getByKey("INFURA_ADDRESS");
-        this.web3j = Web3j.build(new HttpService(config.getConfigValue()));
-    }*/
 
+    /**
+     * 系统内部转账
+     * @param toWalletAddress
+     * @param amount
+     * @param userId
+     * @param walletType
+     * @return
+     * @throws InterruptedException
+     * @throws ExecutionException
+     * @throws BusinessException
+     * @throws CipherException
+     * @throws IOException
+     */
     @Transactional(rollbackFor = Exception.class)
     @Override
     public ResponseResult transfer(String toWalletAddress, String amount, String userId, String walletType) throws InterruptedException, ExecutionException, BusinessException, CipherException, IOException {
@@ -116,7 +109,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         toWalletWrapper.eq(ADDRESS, toWalletAddress);
         toWalletWrapper.eq(WALLTE_TYPE, walletType);
         List<Wallet> toWallets = walletMapper.selectList(toWalletWrapper);
-
         Wallet toWallet = new Wallet();
         if (toWallets.size() > 0) {
             //转账
@@ -128,9 +120,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
                 return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
             }
             setTransBalance(transAmt, fee, fromWallet, toWallet);
-        } else {
-            //提现
-            sysWalletOut(toWalletAddress, userId, walletType, transAmt);
         }
         saveTransaction(userId, walletType, fromWallet, toWallet, transAmt, fee);
         return ResponseResult.success();
@@ -171,8 +160,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
      * @throws ExecutionException
      * @throws InterruptedException
      */
-    private void sysWalletOut(String toWalletAddress, String userId, String walletType, BigDecimal trans) throws BusinessException, IOException, CipherException, ExecutionException, InterruptedException {
-        //若是没有钱包记录表示转账外部地址 择交易为提现
+    private void sysWalletOut(String fromWalletAddress,String toWalletAddress, String userId, String walletType, BigDecimal trans) throws BusinessException, IOException, CipherException, ExecutionException, InterruptedException {
         Config walletAddress = configService.getByKey(SysConfigEum.WALLET_ADDRESS.getCode());
         Config walletPath = configService.getByKey(SysConfigEum.WALLET_PATH.getCode());
         if (WalletEum.SK.getCode().equals(walletType)) {
@@ -186,7 +174,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
                 throw new BusinessException("交易失败,USDT不足");
             }
         }
-        transfer( trans.toString(), walletPath.getConfigValue(), walletAddress.getConfigValue(), toWalletAddress, walletType);
+        walletService.withdraw(fromWalletAddress,toWalletAddress,trans,walletPath.getConfigValue());
     }
 
     /**
@@ -272,58 +260,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         return ResponseResult.success();
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    public String transfer(String transferNumber, String fromPath, String fromAddress, String toAddress, String walletType) throws IOException, CipherException, ExecutionException, InterruptedException, BusinessException {
-        BigDecimal trans = new BigDecimal(transferNumber);
-        //判断转出地址
-        if (!toAddress.startsWith("0x") || toAddress.length() != 42) {
-            throw new BusinessException(null);
-        }
-        Credentials credentials = WalletUtils.loadCredentials(null, fromPath);
-        Web3ClientVersion web3ClientVersion = web3j.web3ClientVersion().sendAsync().get();
-        String clientVersion = web3ClientVersion.getWeb3ClientVersion();
-        System.out.println("version=" + clientVersion);
-        String transactionHash;
-
-        BigDecimal eth;
-        BigDecimal fee = new BigDecimal(0);
-        EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(
-                fromAddress, DefaultBlockParameterName.LATEST).sendAsync().get();
-        BigInteger nonce = ethGetTransactionCount.getTransactionCount();
-        Address transferAddress = new Address(toAddress);
-        String contractAddress = "";
-        if ("0".equals(walletType)) {
-            eth = new BigDecimal(InfuraInfo.USDT_ETH.getDesc());
-            contractAddress = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
-        } else if ("1".equals(walletType)) {
-            eth = new BigDecimal(InfuraInfo.MDC_ETH.getDesc());
-            contractAddress = InfuraInfo.SKC_CONTRACT_ADDRESS.getDesc();
-        } else {
-            throw new BusinessException("交易失败");
-        }
-        Uint256 value = new Uint256(new BigInteger(trans.multiply(eth).stripTrailingZeros().toPlainString()));
-        List <Type> parametersList = new ArrayList <>();
-        parametersList.add(transferAddress);
-        parametersList.add(value);
-        List <TypeReference <?>> outList = new ArrayList <>();
-        Function transfer = new Function("transfer", parametersList, outList);
-        String encodedFunction = FunctionEncoder.encode(transfer);
-        BigInteger gasPrice = Convert.toWei(new BigDecimal(InfuraInfo.GAS_PRICE.getDesc()), Convert.Unit.GWEI).toBigInteger();
-
-        RawTransaction rawTransaction = RawTransaction.createTransaction(nonce, gasPrice,
-                new BigInteger(InfuraInfo.GAS_SIZE.getDesc()), contractAddress, encodedFunction);
-        byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, credentials);
-        String hexValue = Numeric.toHexString(signedMessage);
-
-        EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();
-        transactionHash = ethSendTransaction.getTransactionHash();
-        if (transactionHash == null || "".equals(transactionHash)) {
-            throw new BusinessException("交易失败");
-        }
-        System.out.println(transactionHash);
-
-        return transactionHash;
-    }
 
     private BigDecimal getETHBalance(String address) throws IOException {
         EthGetBalance balance = web3j.ethGetBalance(address, DefaultBlockParameter.valueOf("latest")).send();
@@ -396,7 +332,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
 
     private void transact(String balance, String walletPath, String walletAddress, String toAddress, String walletType, String transactionId, String transactionStatus) {
         try {
-            transfer(balance, walletPath, walletAddress, toAddress, walletType);
+            transfer(balance, walletPath, walletAddress, toAddress);
             updateTransaction(transactionId, transactionStatus);
         } catch (IOException | CipherException | ExecutionException | InterruptedException | BusinessException e) {
             e.printStackTrace();

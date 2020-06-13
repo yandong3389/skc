@@ -59,7 +59,7 @@ public class TransactionController {
 									 @RequestParam(required = true)String walletType)
 	{
 		try {
-			return transactionService.transETH(toWalletAddress,transferNumber,userId,walletType);
+			return transactionService.transfer(toWalletAddress,transferNumber,userId,walletType);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return ResponseResult.fail("ERR500",e.getMessage());
@@ -72,7 +72,7 @@ public class TransactionController {
 	@PostMapping("/invest")
 	@ResponseBody
 	public ResponseResult invest(@RequestParam String userId,@RequestParam String toAddress,@RequestParam String investMoney) {
-		return transactionService.investUSDT(userId,toAddress,investMoney);
+		return transactionService.invest(userId,toAddress,investMoney);
 	}
 
 	/**

@@ -1,5 +1,6 @@
 package com.app.skc.service;
 
+import com.app.skc.exception.BusinessException;
 import com.app.skc.model.Wallet;
 import com.app.skc.utils.viewbean.ResponseResult;
 import com.baomidou.mybatisplus.service.IService;
@@ -44,6 +45,17 @@ public interface WalletService extends IService<Wallet> {
      * @throws IOException
      */
     BigDecimal getEthBalance(String address) throws IOException;
+
+    /**
+     * 提现（上链）
+     * @param fromAddress 转账发起地址
+     * @param toAddress 到账地址
+     * @param amount 金额
+     * @param fromPath 转账发起物理地址
+     * @return
+     */
+    String withdraw(String fromAddress,String toAddress,BigDecimal amount,String fromPath) throws IOException, CipherException, BusinessException, ExecutionException, InterruptedException;
+
 
 
 }
