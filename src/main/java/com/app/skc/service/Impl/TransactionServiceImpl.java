@@ -191,7 +191,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         transaction.setFeeAmount(fee);
         transaction.setCreateTime(new Date());
         transaction.setFromAmount(trans);
-        transaction.setFromUserId(Integer.parseInt(userId));
+        transaction.setFromUserId(userId);
         transaction.setFromWalletAddress(fromWallet.getAddress());
         transaction.setFromWalletType(walletType);
         transaction.setToAmount(trans);
@@ -231,6 +231,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     public ResponseResult invest(String userId, String toAddress, String amount) {
         BigDecimal investAmt = new BigDecimal(amount);
         Transaction transaction = new Transaction();
+        transaction.setTransId("ba"); // TODO
         transaction.setCreateTime(new Date());
         transaction.setModifyTime(new Date());
         transaction.setToAmount(investAmt);
@@ -341,8 +342,8 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     public void updateTransaction(String transactionId, String transactionStatus) {
         Transaction transaction = transactionMapper.selectById(transactionId);
         transaction.setTransStatus(transactionStatus);
+        transaction.setModifyTime(new Date());
         transactionMapper.updateById(transaction);
-
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -378,7 +379,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         transaction.setFeeAmount(new BigDecimal(config.getConfigValue()));
         transaction.setCreateTime(new Date());
         transaction.setFromAmount(cashOut);
-        transaction.setFromUserId(Integer.parseInt(userId));
+        transaction.setFromUserId(userId);
         /* transaction.setFromWalletAddress(wallet.getAddress());*/
         //0-usdt
         transaction.setFromWalletType("0");

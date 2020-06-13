@@ -27,11 +27,11 @@ public class Transaction extends Model<Transaction> {
      * 交易id
      */
     @TableId(value = "trans_id")
-    private Integer transId;
+    private String transId;
     /**
      * 支出用户id
      */
-    private Integer fromUserId;
+    private String fromUserId;
 
     private String fromWalletType;
     /**
