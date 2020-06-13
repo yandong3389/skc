@@ -20,14 +20,17 @@ import java.util.Date;
 public class Wallet extends Model<Wallet> {
     private static final long serialVersionUID = 1L;
     private String walletId;
+    private String userId;
     private String mnemonic;
     private String address;
     private String walletPath;
     private String publicKey;
     private String privateKey;
-    private BigDecimal balance;
     private String walletType;
-    private String userId;
+    private BigDecimal balTotal;
+    private BigDecimal balAvail;
+    private BigDecimal balFreeze;
+    private BigDecimal balReward;
     private Date createTime;
     private Date modifyTime;
 
