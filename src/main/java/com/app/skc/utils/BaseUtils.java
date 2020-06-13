@@ -21,6 +21,11 @@ public class BaseUtils {
         return UUID.randomUUID().toString();
     }
 
+    public static String get64UUID(){
+        UUID uuid = UUID.randomUUID();
+        return  uuid.toString().replaceAll("-", "");
+    }
+
     /**
      * 校验非空参数
      */

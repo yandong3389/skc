@@ -9,6 +9,7 @@ import com.app.skc.enums.ApiErrEnum;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResponseResult {
 
+	private String status;
 	private String code = "0";//code编码
 	private String msg;//回传信息
 	private Object data;//数据集合
@@ -61,6 +62,7 @@ public class ResponseResult {
 		ResponseResult result=new ResponseResult();
 		result.setCode("0");
 		result.setMsg("请求成功");
+		result.setStatus("0");
 		return result;
 	}
 
@@ -74,6 +76,7 @@ public class ResponseResult {
 		result.setCode("0");
 		result.setMsg(msg);
 		result.setData(data);
+		result.setStatus("0");
 		return result;
 	}
 
@@ -85,6 +88,7 @@ public class ResponseResult {
 		ResponseResult result=new ResponseResult();
 		result.setCode("ERR500");
 		result.setMsg("请求失败");
+		result.setStatus("-1");
 		return result;
 	}
 
@@ -95,6 +99,7 @@ public class ResponseResult {
 		ResponseResult result=new ResponseResult();
 		result.setCode(code);
 		result.setMsg(msg);
+		result.setStatus("-1");
 		return result;
 	}
 
@@ -103,8 +108,17 @@ public class ResponseResult {
 	 */
 	public static ResponseResult fail(ApiErrEnum errEnum){
 		ResponseResult result=new ResponseResult();
-		result.setCode(errEnum.toString());
+		result.setCode(errEnum.getCode());
 		result.setMsg(errEnum.getDesc());
+		result.setStatus("-1");
 		return result;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
 	}
 }

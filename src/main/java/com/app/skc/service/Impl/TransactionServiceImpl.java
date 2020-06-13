@@ -460,7 +460,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         //1-提现
         transaction.setTransactionType("1");
         transactionMapper.insert(transaction);
-
         return ResponseResult.success();
     }
 

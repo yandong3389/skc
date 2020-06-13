@@ -6,6 +6,7 @@ import com.app.skc.enums.ApiErrEnum;
 import com.app.skc.service.WalletService;
 import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.web3j.crypto.CipherException;
@@ -70,13 +71,20 @@ public class WalletController {
 
 	/**
 	 * 创建钱包
-	 * @param userId 用户 id
+	 * @param userIdJson 用户 id
 	 * @return 返回的结果，0正确ERR500错误
 	 */
 	@PostMapping("/create")
-	public ResponseResult createWallet(@RequestBody String userId) throws Throwable {
-		try {
-			return walletService.createWallet(userId);
+	public ResponseResult createWallet(@RequestBody JSONObject userIdJson) throws Throwable {
+		String userId = userIdJson.getString("userId");
+		try{
+			if (StringUtils.isBlank(userId)) {
+				System.out.println(userId);
+				return ResponseResult.fail(ApiErrEnum.NOT_PARAM);
+			}else {
+				return walletService.createWallet(userId);
+			}
+
 		} catch (IOException | CipherException io) {
 			return ResponseResult.fail(ApiErrEnum.CREATE_WALLET_FAIL);
 		}

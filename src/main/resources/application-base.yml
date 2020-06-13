@@ -96,4 +96,4 @@ logging:
 web3j:
   client-address: https://ropsten.infura.io/v3/2e130baab5ed43768780e3de46b44257
   admin-client: true
-  httpTimeoutSeconds: 3000
+  httpTimeoutSeconds: 600

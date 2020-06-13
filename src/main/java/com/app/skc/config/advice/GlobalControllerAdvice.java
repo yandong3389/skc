@@ -15,6 +15,6 @@ public class GlobalControllerAdvice {
     @ResponseBody
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR) //自定义浏览器返回状态码
     public ResponseResult catchException(BusinessException e) {
-        return ResponseResult.fail().setErrMsg("500",e.getMessage());
+        return ResponseResult.fail().setErrMsg("500","系统异常");
     }
 }
