@@ -8,7 +8,6 @@ import com.baomidou.mybatisplus.service.IService;
 import org.web3j.crypto.CipherException;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -24,9 +23,10 @@ public interface TransactionService extends IService<Transaction> {
 
     /**
      * ETH钱包转账
+     *
      * @return ResponseResult
      */
-    ResponseResult transETH(String toWalletAddress,String transferNumber,String userId,String walletType) throws InterruptedException, ExecutionException, BusinessException, CipherException, IOException;
+    ResponseResult transfer(String toWalletAddress, String transferNumber, String userId, String walletType) throws InterruptedException, ExecutionException, BusinessException, CipherException, IOException;
 
     /**
      * ETH钱包余额查询

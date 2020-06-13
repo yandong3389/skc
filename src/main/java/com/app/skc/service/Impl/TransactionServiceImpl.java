@@ -84,18 +84,18 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public ResponseResult transETH(String toWalletAddress, String transferNumber, String userId, String walletType) throws InterruptedException, ExecutionException, BusinessException, CipherException, IOException {
+    public ResponseResult transfer(String toWalletAddress, String amount, String userId, String walletType) throws InterruptedException, ExecutionException, BusinessException, CipherException, IOException {
         if (!toWalletAddress.startsWith("0x") || toWalletAddress.length() != 42) {
             return ResponseResult.fail(ApiErrEnum.ADDRESS_WALLET_FAIL);
         }
-        if (!StringUtils.isNumeric(transferNumber)) {
+        if (!StringUtils.isNumeric(amount)) {
             return ResponseResult.fail(ApiErrEnum.TRANS_AMOUNT_INVALID);
         }
         if (WalletEum.getByCode(walletType) == null) {
             return ResponseResult.fail(ApiErrEnum.WALLET_TYPE_NOT_SUPPORTED);
         }
         //格式化转账金额
-        BigDecimal trans = new BigDecimal(transferNumber);
+        BigDecimal transAmt = new BigDecimal(amount);
         BigDecimal fee = new BigDecimal(0);
 
         //获取发起转账钱包
@@ -114,23 +114,22 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         toWalletWrapper.eq(ADDRESS, toWalletAddress);
         toWalletWrapper.eq(WALLTE_TYPE, walletType);
         List<Wallet> toWallets = walletMapper.selectList(toWalletWrapper);
-
         Wallet toWallet = new Wallet();
         if (toWallets.size() > 0) {
             //转账
             toWallet = toWallets.get(0);
             Config config = configService.getByKey(SysConfigEum.SKC_TRANS_FEE.getCode());
             String value = config.getConfigValue();
-            fee = trans.multiply(new BigDecimal(value));
-            if (trans.doubleValue() > fromWallet.getBalance().doubleValue()) {
+            fee = transAmt.multiply(new BigDecimal(value));
+            if (transAmt.doubleValue() > fromWallet.getBalance().doubleValue()) {
                 return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
             }
-            setTransBalance(trans, fee, fromWallet, toWallet);
+            setTransBalance(transAmt, fee, fromWallet, toWallet);
         } else {
             //提现
-            sysWalletOut(toWalletAddress, userId, walletType, trans);
+            sysWalletOut(toWalletAddress, userId, walletType, transAmt);
         }
-        saveTransaction(userId, walletType, fromWallet, toWallet, trans, fee);
+        saveTransaction(userId, walletType, fromWallet, toWallet, transAmt, fee);
         return ResponseResult.success();
     }
 
@@ -144,8 +143,8 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     private void setTransBalance(BigDecimal trans, BigDecimal fee, Wallet fromWallet, Wallet toWallet) {
         BigDecimal fromBalance = fromWallet.getBalance();
         fromWallet.setBalance(fromBalance.subtract(trans).subtract(fee));
-        BigDecimal usdtTo = toWallet.getBalance();
-        toWallet.setBalance(usdtTo.add(trans));
+        BigDecimal toBalance = toWallet.getBalance();
+        toWallet.setBalance(toBalance.add(trans));
     }
 
     /**
