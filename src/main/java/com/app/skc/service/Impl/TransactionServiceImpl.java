@@ -9,6 +9,7 @@ import com.app.skc.model.Transaction;
 import com.app.skc.model.Wallet;
 import com.app.skc.model.system.Config;
 import com.app.skc.service.TransactionService;
+import com.app.skc.service.WalletService;
 import com.app.skc.service.system.ConfigService;
 import com.app.skc.utils.date.DateUtil;
 import com.app.skc.utils.jdbc.SqlUtils;
@@ -59,6 +60,8 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     private WalletMapper walletMapper;
     @Autowired
     private TransactionMapper transactionMapper;
+    @Autowired
+    private WalletService walletService;
     @Autowired
     private Web3j web3j;
     @Autowired
@@ -163,12 +166,12 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         Config walletAddress = configService.getByKey(SysConfigEum.WALLET_ADDRESS.getCode());
         Config walletPath = configService.getByKey(SysConfigEum.WALLET_PATH.getCode());
         if (WalletEum.SK.getCode().equals(walletType)) {
-            BigDecimal mdcBalance = getBalance(walletAddress.getConfigValue(), InfuraInfo.SKC_CONTRACT_ADDRESS.getDesc());
+            BigDecimal mdcBalance = walletService.getERC20Balance(walletAddress.getConfigValue(), InfuraInfo.SKC_CONTRACT_ADDRESS.getDesc());
             if (mdcBalance.doubleValue() < trans.doubleValue()) {
                 throw new BusinessException("交易失败,SKC不足");
             }
         } else if (WalletEum.USDT.getCode().equals(walletType)) {
-            BigDecimal usdtBalance = getBalance(walletAddress.getConfigValue(), InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc());
+            BigDecimal usdtBalance = walletService.getERC20Balance(walletAddress.getConfigValue(), InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc());
             if (usdtBalance.doubleValue() < trans.doubleValue()) {
                 throw new BusinessException("交易失败,USDT不足");
             }
@@ -248,7 +251,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             e.printStackTrace();
         }
         String usdtCOntractAddress = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
-        BigDecimal balance = getBalance(toAddress, usdtCOntractAddress);
+        BigDecimal balance = walletService.getERC20Balance(toAddress, usdtCOntractAddress);
         if (balance != null && balance.doubleValue() >= new Double(investMoney)) {
             transaction.setTransactionStatus("1");
             transactionMapper.updateById(transaction);
@@ -321,35 +324,8 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         return new BigDecimal(blanceETH.trim());
     }
 
-    private BigDecimal getBalance(String fromAddress, String contractAddress) {
-        //查询余额变化
-        String methodName = "balanceOf";
-        List <Type> inputParameters = new ArrayList <>();
-        List <TypeReference <?>> outputParameters = new ArrayList <>();
-        Address address = new Address(fromAddress);
-        inputParameters.add(address);
 
-        TypeReference <Uint256> typeReference = new TypeReference <Uint256>() {
-        };
-        outputParameters.add(typeReference);
-        Function function = new Function(methodName, inputParameters, outputParameters);
-        String data = FunctionEncoder.encode(function);
-        org.web3j.protocol.core.methods.request.Transaction transactions = org.web3j.protocol.core.methods.request.Transaction.createEthCallTransaction(fromAddress, contractAddress, data);
 
-        EthCall ethCall;
-        BigDecimal balanceValue = new BigDecimal(0);
-        try {
-            ethCall = web3j.ethCall(transactions, DefaultBlockParameterName.LATEST).send();
-            List <Type> results = FunctionReturnDecoder.decode(ethCall.getValue(), function.getOutputParameters());
-            System.out.println(JSON.toJSON(results));
-            balanceValue = new BigDecimal((BigInteger) results.get(0).getValue()).divide(new BigDecimal("1000000"));
-            System.out.println(balanceValue);
-            return balanceValue;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return balanceValue;
-    }
 
     private void confirm(Date time, String fromAddress, String contractAddress, String money, String userId, String transactionId) {
         //定时第一次15分钟后执行
@@ -366,7 +342,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             public void run() {
                 Date date = new Date();
                 System.out.println(DateUtil.getDate(DATE_FORMAT, 0, date));
-                BigDecimal balanceValue = getBalance(fromAddress, contractAddress);
+                BigDecimal balanceValue = walletService.getERC20Balance(fromAddress, contractAddress);
                 if (balanceValue == null || balanceValue.doubleValue() <= new Double(money)) {
                     //钱未到账继续第二次定时
                     System.out.println(DateUtil.getDate(DATE_FORMAT, Calendar.HOUR_OF_DAY, 1, date));
@@ -377,7 +353,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
                         public void run() {
                             Date lastDate = new Date();
                             System.out.println(DateUtil.getDate(DATE_FORMAT, 0, lastDate));
-                            BigDecimal balance = getBalance(fromAddress, contractAddress);
+                            BigDecimal balance = walletService.getERC20Balance(fromAddress, contractAddress);
                             if (balance == null || balance.doubleValue() <= new Double(money)) {
                                 //钱未到账继续第三次定时
                                 System.out.println(DateUtil.getDate(DATE_FORMAT, Calendar.HOUR_OF_DAY, 2, lastDate));
@@ -386,7 +362,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
                                 lastScheduler.schedule(new Runnable() {
                                     @Override
                                     public void run() {
-                                        BigDecimal lastBalance = getBalance(fromAddress, contractAddress);
+                                        BigDecimal lastBalance = walletService.getERC20Balance(fromAddress, contractAddress);
                                         if (lastBalance == null || lastBalance.doubleValue() <= new Double(money)) {
                                             //钱未到账，交易失败
                                             updateTransaction(transactionId, "-1");

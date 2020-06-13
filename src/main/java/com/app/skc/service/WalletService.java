@@ -1,16 +1,16 @@
 package com.app.skc.service;
 
 import com.app.skc.model.Wallet;
-import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
 import com.baomidou.mybatisplus.service.IService;
 import org.web3j.crypto.CipherException;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 /**
  * <p>
@@ -28,6 +28,22 @@ public interface WalletService extends IService<Wallet> {
      * @return ResponseResult
      */
     ResponseResult createWallet(String userId) throws IOException, CipherException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException;
+
+    /**
+     * 获取eth 代币余额
+     * @param address 账号地址
+     * @param contractAddress 合约地址
+     * @return
+     */
+    BigDecimal getERC20Balance(String address,String contractAddress);
+
+    /**
+     * 获取 eth 余额
+     * @param address
+     * @return
+     * @throws IOException
+     */
+    BigDecimal getEthBalance(String address) throws IOException;
 
 
 }

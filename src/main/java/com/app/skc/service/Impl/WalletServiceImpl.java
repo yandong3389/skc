@@ -14,9 +14,22 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.web3j.abi.FunctionEncoder;
+import org.web3j.abi.FunctionReturnDecoder;
+import org.web3j.abi.TypeReference;
+import org.web3j.abi.datatypes.Address;
+import org.web3j.abi.datatypes.Function;
+import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.CipherException;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
+import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.request.Transaction;
+import org.web3j.protocol.core.methods.response.EthCall;
+import org.web3j.protocol.core.methods.response.EthGetBalance;
+import org.web3j.utils.Convert;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,9 +38,7 @@ import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * <p>
@@ -43,6 +54,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     private static final String NULL = null;
     private static final String ADDRESS = "address";
     private static final String MNEMONIC = "mnemonic";
+    private static final String DATA_PREFIX = "0x70a08231000000000000000000000000";
     @Autowired
     private final WalletMapper walletMapper;
     private static final String LOG_PREFIX = "[钱包服务] - ";
@@ -51,6 +63,8 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     public WalletServiceImpl(WalletMapper walletMapper){
         this.walletMapper = walletMapper;
     }
+    @Autowired
+    private Web3j web3j;
 
     /**
      * 创建钱包
@@ -87,6 +101,48 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
             return ResponseResult.fail(ApiErrEnum.CREATE_WALLET_FAIL);
         }
 
+    }
+
+
+    @Override
+    public BigDecimal getERC20Balance(String fromAddress ,String contractAddress) {
+        String methodName = "balanceOf";
+        List <Type> inputParameters = new ArrayList <>();
+        List<TypeReference<?>> outputParameters = new ArrayList<>();
+        Address address = new Address(fromAddress);
+        inputParameters.add(address);
+
+        TypeReference<Uint256> typeReference = new TypeReference <Uint256>() {
+        };
+        outputParameters.add(typeReference);
+        Function function = new Function(methodName, inputParameters, outputParameters);
+        String data = FunctionEncoder.encode(function);
+        Transaction transaction = Transaction.createEthCallTransaction(fromAddress, contractAddress, data);
+
+        EthCall ethCall;
+        BigDecimal balanceValue = BigDecimal.ZERO;
+        try {
+            ethCall = web3j.ethCall(transaction, DefaultBlockParameterName.LATEST).send();
+            List<Type> results = FunctionReturnDecoder.decode(ethCall.getValue(), function.getOutputParameters());
+            balanceValue = (BigDecimal) results.get(0).getValue();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return balanceValue;
+
+    }
+
+    /**
+     * 获取以太坊余额
+     * @param address
+     * @return
+     * @throws IOException
+     */
+    @Override
+    public BigDecimal getEthBalance(String address) throws IOException {
+        EthGetBalance ethGetBlance = web3j.ethGetBalance(address, DefaultBlockParameterName.LATEST).send();
+        String balance = Convert.fromWei(new BigDecimal(ethGetBlance.getBalance()), Convert.Unit.ETHER).toPlainString();
+        return new BigDecimal(balance);
     }
 
     /**

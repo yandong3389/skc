@@ -3,6 +3,7 @@ package com.app.skc.controller;
 
 import com.alibaba.fastjson.JSONObject;
 import com.app.skc.enums.ApiErrEnum;
+import com.app.skc.enums.InfuraInfo;
 import com.app.skc.service.WalletService;
 import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
@@ -90,15 +91,11 @@ public class WalletController {
 		}
 	}
 
-	/**
-	 * 验证助记词
-	 * @param jsonObject  userId, wallteType
-	 * @return
-	 */
-	@PostMapping("validMnemonic")
-	public ResponseResult validMemoryWord(@RequestBody JSONObject jsonObject){
-		return null;
+	@GetMapping("get")
+	public ResponseResult getBlockChainBlance() throws IOException {
+		return ResponseResult.success("成功",walletService.getERC20Balance("0xa009f7acc35942c71cb87cbf6b432f693b87eac5",InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc()));
 	}
+
 
 
 
