@@ -1,14 +1,17 @@
 package com.app.skc.enums;
 
 /**
- * 交易枚举
+ * 交易类型枚举
  */
-public enum  TransactionEum {
-    TRANSFER("0","转账"),
-    TRAD("1","交易"),
-    OUT("2","提现"),
-    IN("3","充值"),
-    FINISH("0","完成");
+public enum TransTypeEum {
+    TRANSFER("0", "转账"),
+    BUY("1", "买入"),
+    SELL("2", "卖出"),
+    OUT("3", "提现"),
+    IN("4", "充值"),
+    FREEZE("5", "冻结"),
+    UNFREEZE("6", "解冻"),
+    ;
     /**
      * 描述
      */
@@ -19,11 +22,11 @@ public enum  TransactionEum {
 
     private String code;
 
-    TransactionEum(String code,String desc)
-    {
+    TransTypeEum(String code, String desc) {
         this.code = code;
         this.desc = desc;
     }
+
     public String getDesc() {
         return desc;
     }

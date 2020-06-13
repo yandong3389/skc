@@ -36,12 +36,13 @@ public interface TransactionService extends IService<Transaction> {
 
     /**
      * 充值
-     * @param userId 用户id
-     * @param toAddress 钱包address
+     *
+     * @param userId      用户id
+     * @param toAddress   钱包address
      * @param investMoney 充值金额
      * @return ResponseResult
      */
-    ResponseResult investUSDT(String userId,String toAddress,String investMoney);
+    ResponseResult invest(String userId, String toAddress, String investMoney);
 
     /**
      * 提现
