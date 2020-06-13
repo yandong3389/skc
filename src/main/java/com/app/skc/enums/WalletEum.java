@@ -3,12 +3,12 @@ package com.app.skc.enums;
 import org.apache.commons.lang3.StringUtils;
 
 public enum WalletEum {
-    ETH("1", "ETH"),
-    SK("2", "SK"),
-    USDT("3", "USDT");
+    ETH("ETH", "1"),
+    SK("SK", "2"),
+    USDT("USDT", "3");
 
     /**
-     * code 钱包代码
+     * code 钱包代码D
      */
     private String code;
 

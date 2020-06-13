@@ -7,6 +7,9 @@ import com.baomidou.mybatisplus.service.IService;
 import org.web3j.crypto.CipherException;
 
 import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.Map;
 
 /**
@@ -24,7 +27,7 @@ public interface WalletService extends IService<Wallet> {
      * @param userId 用户信息
      * @return ResponseResult
      */
-    ResponseResult createWallet(String userId) throws IOException, CipherException;
+    ResponseResult createWallet(String userId) throws IOException, CipherException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException;
 
 
 }
