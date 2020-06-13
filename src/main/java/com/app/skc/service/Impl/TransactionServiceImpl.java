@@ -114,6 +114,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         toWalletWrapper.eq(ADDRESS, toWalletAddress);
         toWalletWrapper.eq(WALLTE_TYPE, walletType);
         List<Wallet> toWallets = walletMapper.selectList(toWalletWrapper);
+
         Wallet toWallet = new Wallet();
         if (toWallets.size() > 0) {
             //转账
@@ -121,7 +122,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             Config config = configService.getByKey(SysConfigEum.SKC_TRANS_FEE.getCode());
             String value = config.getConfigValue();
             fee = transAmt.multiply(new BigDecimal(value));
-            if (transAmt.doubleValue() > fromWallet.getBalance().doubleValue()) {
+            if (transAmt.doubleValue() > fromWallet.getBalAvail().doubleValue()) {
                 return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
             }
             setTransBalance(transAmt, fee, fromWallet, toWallet);
@@ -135,16 +136,24 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
 
     /**
      * 设置转账钱包余额
-     * @param trans 转账数量
+     *
+     * @param transAmt   转账数量
      * @param fee 手续费
      * @param fromWallet 转账发起钱包
      * @param toWallet 到账钱包
      */
-    private void setTransBalance(BigDecimal trans, BigDecimal fee, Wallet fromWallet, Wallet toWallet) {
-        BigDecimal fromBalance = fromWallet.getBalance();
-        fromWallet.setBalance(fromBalance.subtract(trans).subtract(fee));
-        BigDecimal toBalance = toWallet.getBalance();
-        toWallet.setBalance(toBalance.add(trans));
+    private void setTransBalance(BigDecimal transAmt, BigDecimal fee, Wallet fromWallet, Wallet toWallet) {
+        // 设置转出账户余额
+        BigDecimal fromBalTotal = fromWallet.getBalTotal();
+        BigDecimal fromBalAvail = fromWallet.getBalAvail();
+        fromWallet.setBalTotal(fromBalTotal.subtract(transAmt).subtract(fee));
+        fromWallet.setBalAvail(fromBalAvail.subtract(transAmt).subtract(fee));
+
+        // 设置转入账户余额
+        BigDecimal toBalTotal = toWallet.getBalTotal();
+        BigDecimal toBalAvail = toWallet.getBalAvail();
+        toWallet.setBalTotal(toBalTotal.add(transAmt));
+        toWallet.setBalAvail(toBalTotal.add(transAmt));
     }
 
     /**
@@ -202,8 +211,8 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         }
         transaction.setToWalletAddress(toWallet.getAddress());
         transaction.setToWalletType(walletType);
-        transaction.setTransactionStatus(TransactionEum.FINISH.getCode());
-        transaction.setTransactionType(TransactionEum.TRANSFER.getCode());
+        transaction.setTransactionStatus(TransStatusEnum.SUCCESS.getCode());
+        transaction.setTransactionType(TransTypeEum.TRANSFER.getCode());
         transactionMapper.insert(transaction);
         walletMapper.updateById(fromWallet);
         walletMapper.updateById(toWallet);
@@ -230,32 +239,31 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public ResponseResult investUSDT(String userId, String toAddress, String investMoney) {
-        BigDecimal invest = new BigDecimal(investMoney);
+    public ResponseResult invest(String userId, String toAddress, String amount) {
+        BigDecimal investAmt = new BigDecimal(amount);
         Transaction transaction = new Transaction();
         transaction.setCreateTime(new Date());
-        transaction.setToAmount(invest);
-        /*transaction.setToUserId(Integer.parseInt(userId));*/
+        transaction.setToAmount(investAmt);
         transaction.setToWalletAddress(toAddress);
-        //0-usdt
+        // 3-usdt
         transaction.setToWalletType(WalletEum.USDT.getCode());
         //0-待交易
         transaction.setTransactionStatus("0");
         //0-充值
-        transaction.setTransactionType(TransactionEum.IN.getCode());
+        transaction.setTransactionType(TransTypeEum.IN.getCode());
         transactionMapper.insert(transaction);
         try {
             Thread.sleep(60000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        String usdtCOntractAddress = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
-        BigDecimal balance = walletService.getERC20Balance(toAddress, usdtCOntractAddress);
-        if (balance != null && balance.doubleValue() >= new Double(investMoney)) {
+        String usdtContractAdd = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
+        BigDecimal balance = walletService.getERC20Balance(toAddress, usdtContractAdd);
+        if (balance != null && balance.doubleValue() >= new Double(amount)) {
             transaction.setTransactionStatus("1");
             transactionMapper.updateById(transaction);
         } else {
-            confirm(new Date(), toAddress, usdtCOntractAddress, investMoney, userId, transaction.getTransactionId().toString());
+            confirm(new Date(), toAddress, usdtContractAdd, amount, userId, transaction.getTransactionId().toString());
         }
         return ResponseResult.success();
     }
