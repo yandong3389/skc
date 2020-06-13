@@ -157,9 +157,13 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
      */
     private Wallet saveWallet(String userId, String walletFilePath, String address, Date date, BigInteger publicKey, BigInteger privateKey) {
         Wallet wallet = new Wallet();
+        BigDecimal init = BigDecimal.ZERO;
         wallet.setAddress(address);
         wallet.setWalletPath(walletFilePath);
-        wallet.setBalance(new BigDecimal(0));
+        wallet.setBalAvail(init);
+        wallet.setBalFreeze(init);
+        wallet.setBalReward(init);
+        wallet.setBalTotal(init);
         wallet.setMnemonic(NULL);
         wallet.setPublicKey(publicKey.toString());
         wallet.setPrivateKey(privateKey.toString());
