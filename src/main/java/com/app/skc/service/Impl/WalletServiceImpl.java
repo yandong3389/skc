@@ -2,7 +2,9 @@ package com.app.skc.service.Impl;
 
 import com.alibaba.fastjson.JSON;
 import com.app.skc.enums.ApiErrEnum;
+import com.app.skc.enums.InfuraInfo;
 import com.app.skc.enums.WalletEum;
+import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.WalletMapper;
 import com.app.skc.model.Wallet;
 import com.app.skc.service.WalletService;
@@ -21,15 +23,13 @@ import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
 import org.web3j.abi.datatypes.generated.Uint256;
-import org.web3j.crypto.CipherException;
-import org.web3j.crypto.Credentials;
-import org.web3j.crypto.WalletUtils;
+import org.web3j.crypto.*;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.request.Transaction;
-import org.web3j.protocol.core.methods.response.EthCall;
-import org.web3j.protocol.core.methods.response.EthGetBalance;
+import org.web3j.protocol.core.methods.response.*;
 import org.web3j.utils.Convert;
+import org.web3j.utils.Numeric;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,6 +39,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 /**
  * <p>
@@ -54,7 +55,6 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     private static final String NULL = null;
     private static final String ADDRESS = "address";
     private static final String MNEMONIC = "mnemonic";
-    private static final String DATA_PREFIX = "0x70a08231000000000000000000000000";
     @Autowired
     private final WalletMapper walletMapper;
     private static final String LOG_PREFIX = "[钱包服务] - ";
@@ -124,7 +124,8 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
         try {
             ethCall = web3j.ethCall(transaction, DefaultBlockParameterName.LATEST).send();
             List<Type> results = FunctionReturnDecoder.decode(ethCall.getValue(), function.getOutputParameters());
-            balanceValue = (BigDecimal) results.get(0).getValue();
+            String value =  results.get(0).getValue().toString();
+            balanceValue = new BigDecimal(value);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -143,6 +144,55 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
         EthGetBalance ethGetBlance = web3j.ethGetBalance(address, DefaultBlockParameterName.LATEST).send();
         String balance = Convert.fromWei(new BigDecimal(ethGetBlance.getBalance()), Convert.Unit.ETHER).toPlainString();
         return new BigDecimal(balance);
+    }
+
+    /**
+     * 提现上链
+     * @param fromAddress
+     * @param toAddress
+     * @param amount
+     * @param fromPath 提现(上链)
+     * @return
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public String withdraw(String fromAddress, String toAddress, String amount,String fromPath) throws BusinessException, ExecutionException, InterruptedException, IOException, CipherException {
+        BigDecimal trans = new BigDecimal(amount);
+        String transactionHash;
+        BigDecimal eth = BigDecimal.ZERO;
+        //判断转出地址
+        if (!toAddress.startsWith("0x") || toAddress.length() != 42) {
+            throw new BusinessException(null);
+        }
+        Credentials credentials = WalletUtils.loadCredentials("", fromPath);
+        Web3ClientVersion web3ClientVersion = web3j.web3ClientVersion().sendAsync().get();
+        String clientVersion = web3ClientVersion.getWeb3ClientVersion();
+        System.out.println("version=" + clientVersion);
+        EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(
+                fromAddress, DefaultBlockParameterName.LATEST).sendAsync().get();
+        BigInteger nonce = ethGetTransactionCount.getTransactionCount();
+        Address transferAddress = new Address(toAddress);
+        String contractAddress = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
+        Uint256 value = new Uint256(new BigInteger(trans.multiply(eth).stripTrailingZeros().toPlainString()));
+        List <Type> parametersList = new ArrayList <>();
+        parametersList.add(transferAddress);
+        parametersList.add(value);
+        List <TypeReference <?>> outList = new ArrayList <>();
+        Function transfer = new Function("transfer", parametersList, outList);
+        String encodedFunction = FunctionEncoder.encode(transfer);
+        BigInteger gasPrice = Convert.toWei(new BigDecimal(InfuraInfo.GAS_PRICE.getDesc()), Convert.Unit.GWEI).toBigInteger();
+
+        RawTransaction rawTransaction = RawTransaction.createTransaction(nonce, gasPrice,
+                new BigInteger(InfuraInfo.GAS_SIZE.getDesc()), contractAddress, encodedFunction);
+        byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, credentials);
+        String hexValue = Numeric.toHexString(signedMessage);
+
+        EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();
+        transactionHash = ethSendTransaction.getTransactionHash();
+        if (transactionHash == null || "".equals(transactionHash)) {
+            throw new BusinessException("交易失败");
+        }
+        return transactionHash;
     }
 
     /**

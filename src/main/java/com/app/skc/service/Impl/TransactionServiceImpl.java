@@ -258,7 +258,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             e.printStackTrace();
         }
         String usdtContractAdd = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
-        BigDecimal balance = walletService.getERC20Balance(toAddress, usdtContractAdd);
+        BigDecimal balance = getBalance(toAddress, usdtContractAdd);
         if (balance != null && balance.doubleValue() >= new Double(amount)) {
             transaction.setTransactionStatus("1");
             transactionMapper.updateById(transaction);
