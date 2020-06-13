@@ -55,9 +55,11 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
 
     /**
      * 创建钱包
+     *
      * @param userId 用户信息
      * @return
-     * @throws Throwable
+     * @throws IOException
+     * @throws CipherException
      */
     @Transactional(rollbackFor = Exception.class)
     @Override

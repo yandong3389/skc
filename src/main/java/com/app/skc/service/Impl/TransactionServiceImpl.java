@@ -3,9 +3,9 @@ package com.app.skc.service.Impl;
 import com.alibaba.fastjson.JSON;
 import com.app.skc.enums.*;
 import com.app.skc.exception.BusinessException;
+import com.app.skc.mapper.TransactionMapper;
 import com.app.skc.mapper.WalletMapper;
 import com.app.skc.model.Transaction;
-import com.app.skc.mapper.TransactionMapper;
 import com.app.skc.model.Wallet;
 import com.app.skc.model.system.Config;
 import com.app.skc.service.TransactionService;
@@ -18,6 +18,8 @@ import com.baomidou.mybatisplus.mapper.EntityWrapper;
 import com.baomidou.mybatisplus.service.impl.ServiceImpl;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,9 +55,13 @@ import java.util.concurrent.ExecutionException;
 @Service("transactionService")
 public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Transaction> implements TransactionService {
 
+    @Autowired
     private WalletMapper walletMapper;
+    @Autowired
     private TransactionMapper transactionMapper;
+    @Autowired
     private Web3j web3j;
+    @Autowired
     private ConfigService configService;
     private static String ADDRESS = "address";
     private static String USER_ID = "user_id";
@@ -79,25 +85,32 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         if (!toWalletAddress.startsWith("0x") || toWalletAddress.length() != 42) {
             return ResponseResult.fail(ApiErrEnum.ADDRESS_WALLET_FAIL);
         }
+        if (!StringUtils.isNumeric(transferNumber)) {
+            return ResponseResult.fail(ApiErrEnum.TRANS_AMOUNT_INVALID);
+        }
+        if (WalletEum.getByCode(walletType) == null) {
+            return ResponseResult.fail(ApiErrEnum.WALLET_TYPE_NOT_SUPPORTED);
+        }
         //格式化转账金额
         BigDecimal trans = new BigDecimal(transferNumber);
         BigDecimal fee = new BigDecimal(0);
 
-        EntityWrapper <Wallet> wrapper = new EntityWrapper <>();
-        wrapper.eq(ADDRESS, toWalletAddress);
-        wrapper.eq(WALLTE_TYPE, walletType);
-        //获取到账钱包
-        List <Wallet> toWallets = walletMapper.selectList(wrapper);
-        wrapper.eq(USER_ID,userId);
         //获取发起转账钱包
-        List <Wallet> fromWallets = walletMapper.selectList(wrapper);
+        EntityWrapper<Wallet> fromWalletWrapper = new EntityWrapper<>();
+        fromWalletWrapper.eq(USER_ID, userId);
+        fromWalletWrapper.eq(WALLTE_TYPE, walletType);
+        List<Wallet> fromWallets = walletMapper.selectList(fromWalletWrapper);
         Wallet fromWallet;
         if (fromWallets.size() > 0) {
             fromWallet = fromWallets.get(0);
         } else {
             return ResponseResult.fail();
         }
-
+        //获取到账钱包
+        EntityWrapper<Wallet> toWalletWrapper = new EntityWrapper<>();
+        toWalletWrapper.eq(ADDRESS, toWalletAddress);
+        toWalletWrapper.eq(WALLTE_TYPE, walletType);
+        List<Wallet> toWallets = walletMapper.selectList(toWalletWrapper);
 
         Wallet toWallet = new Wallet();
         if (toWallets.size() > 0) {
@@ -149,12 +162,12 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         //若是没有钱包记录表示转账外部地址 择交易为提现
         Config walletAddress = configService.getByKey(SysConfigEum.WALLET_ADDRESS.getCode());
         Config walletPath = configService.getByKey(SysConfigEum.WALLET_PATH.getCode());
-        if (WallteEum.SKC.getCode().equals(walletType)) {
+        if (WalletEum.SK.getCode().equals(walletType)) {
             BigDecimal mdcBalance = getBalance(walletAddress.getConfigValue(), InfuraInfo.SKC_CONTRACT_ADDRESS.getDesc());
             if (mdcBalance.doubleValue() < trans.doubleValue()) {
                 throw new BusinessException("交易失败,SKC不足");
             }
-        } else if (WallteEum.USDT.getCode().equals(walletType)) {
+        } else if (WalletEum.USDT.getCode().equals(walletType)) {
             BigDecimal usdtBalance = getBalance(walletAddress.getConfigValue(), InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc());
             if (usdtBalance.doubleValue() < trans.doubleValue()) {
                 throw new BusinessException("交易失败,USDT不足");
@@ -223,7 +236,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         /*transaction.setToUserId(Integer.parseInt(userId));*/
         transaction.setToWalletAddress(toAddress);
         //0-usdt
-        transaction.setToWalletType(WallteEum.USDT.getCode());
+        transaction.setToWalletType(WalletEum.USDT.getCode());
         //0-待交易
         transaction.setTransactionStatus("0");
         //0-充值
