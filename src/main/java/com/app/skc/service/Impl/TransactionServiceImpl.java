@@ -88,6 +88,9 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         if (!StringUtils.isNumeric(transferNumber)) {
             return ResponseResult.fail(ApiErrEnum.TRANS_AMOUNT_INVALID);
         }
+        if (WalletEum.getByCode(walletType) == null) {
+            return ResponseResult.fail(ApiErrEnum.WALLET_TYPE_NOT_SUPPORTED);
+        }
         //格式化转账金额
         BigDecimal trans = new BigDecimal(transferNumber);
         BigDecimal fee = new BigDecimal(0);
@@ -159,12 +162,12 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         //若是没有钱包记录表示转账外部地址 择交易为提现
         Config walletAddress = configService.getByKey(SysConfigEum.WALLET_ADDRESS.getCode());
         Config walletPath = configService.getByKey(SysConfigEum.WALLET_PATH.getCode());
-        if (WallteEum.SKC.getCode().equals(walletType)) {
+        if (WalletEum.SK.getCode().equals(walletType)) {
             BigDecimal mdcBalance = getBalance(walletAddress.getConfigValue(), InfuraInfo.SKC_CONTRACT_ADDRESS.getDesc());
             if (mdcBalance.doubleValue() < trans.doubleValue()) {
                 throw new BusinessException("交易失败,SKC不足");
             }
-        } else if (WallteEum.USDT.getCode().equals(walletType)) {
+        } else if (WalletEum.USDT.getCode().equals(walletType)) {
             BigDecimal usdtBalance = getBalance(walletAddress.getConfigValue(), InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc());
             if (usdtBalance.doubleValue() < trans.doubleValue()) {
                 throw new BusinessException("交易失败,USDT不足");
@@ -233,7 +236,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         /*transaction.setToUserId(Integer.parseInt(userId));*/
         transaction.setToWalletAddress(toAddress);
         //0-usdt
-        transaction.setToWalletType(WallteEum.USDT.getCode());
+        transaction.setToWalletType(WalletEum.USDT.getCode());
         //0-待交易
         transaction.setTransactionStatus("0");
         //0-充值
