@@ -5,7 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 public enum WalletEum {
     ETH("ETH", "1"),
     SK("SK", "2"),
-    USDT("USTD", "3");
+    USDT("USDT", "3");
 
     /**
      * code 钱包代码D
