@@ -84,9 +84,9 @@ public class ScheduleTask {
                             //0-usdt
                             transaction.setToWalletType("0");
                             //0-待交易
-                            transaction.setTransactionStatus("1");
+                            transaction.setTransStatus("1");
                             //0-充值
-                            transaction.setTransactionType("0");
+                            transaction.setTransType("0");
                             transactionMapper.insert(transaction);
                        /*     BigDecimal oldBalance = wallet.getUstdBlance();
                             wallet.setUstdBlance(oldBalance.add(balance));*/
