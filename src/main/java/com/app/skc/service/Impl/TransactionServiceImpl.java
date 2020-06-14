@@ -1,4 +1,5 @@
 package com.app.skc.service.Impl;
+
 import com.app.skc.enums.*;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.TransactionMapper;
@@ -28,6 +29,7 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.methods.response.EthGetBalance;
 import org.web3j.utils.Convert;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Calendar;
@@ -254,6 +256,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
             transaction.setModifyTime(new Date());
             transactionMapper.updateById(transaction);
+            // 缺少 - 更新账户余额
         } else {
             confirm(new Date(), toAddress, usdtContractAdd, amount, userId, transaction.getTransId().toString());
         }
