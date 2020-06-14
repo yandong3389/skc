@@ -1,4 +1,7 @@
 package com.app.skc.service.Impl;
+
+import com.app.skc.common.Exchange;
+import com.app.skc.common.ExchangeCenter;
 import com.app.skc.enums.*;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.TransactionMapper;
@@ -27,6 +30,7 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.methods.response.EthGetBalance;
 import org.web3j.utils.Convert;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Calendar;
@@ -34,6 +38,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+
+import static com.app.skc.enums.ApiErrEnum.NO_COMMISSION;
+import static com.app.skc.enums.ApiErrEnum.NO_DEAL_PRICE;
 
 /**
  * <p>
@@ -395,4 +402,51 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         return ResponseResult.success();
     }
 
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public ResponseResult buy(String userId, String priceStr, Integer quantity) {
+        ResponseResult result = ResponseResult.success();
+        BigDecimal price = new BigDecimal(priceStr);
+        ExchangeCenter exchangeCenter = ExchangeCenter.getInstance();
+        List<Transaction> transactions = exchangeCenter.buy(userId, price, quantity);
+        result.setData(transactions);
+        return result;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public ResponseResult sell(String userId, String priceStr, Integer quantity) {
+        ResponseResult result = ResponseResult.success();
+        BigDecimal price = new BigDecimal(priceStr);
+        ExchangeCenter exchangeCenter = ExchangeCenter.getInstance();
+        List<Transaction> transactions = exchangeCenter.sell(userId, price, quantity);
+        result.setData(transactions);
+        return result;
+    }
+
+    @Override
+    public ResponseResult queryBuy(Integer top) {
+        List<Exchange> buyList = ExchangeCenter.getInstance().queryBuy(top);
+        if (buyList == null)
+            return ResponseResult.fail(NO_COMMISSION);
+        return ResponseResult.success("",buyList);
+    }
+
+    @Override
+    public ResponseResult querySell(Integer top) {
+        List<Exchange> sellList = ExchangeCenter.getInstance().querySell(top);
+        if (sellList == null)
+            return ResponseResult.fail(NO_COMMISSION);
+        return ResponseResult.success("",sellList);
+    }
+
+    @Override
+    public ResponseResult price() {
+        BigDecimal price = ExchangeCenter.getInstance().price();
+        if (price == null){
+            return ResponseResult.fail(NO_DEAL_PRICE);
+        }
+        return ResponseResult.success("",price);
+    }
 }
