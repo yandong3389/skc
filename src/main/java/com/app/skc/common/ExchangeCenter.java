@@ -4,9 +4,7 @@ import com.app.skc.model.Transaction;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * 交易所交易数据中心
@@ -66,6 +64,13 @@ public class ExchangeCenter {
         }
         return buyingLeads.subList(0, Math.min(top,buyingLeads.size()));
     }
+//
+//    private List<Exchange> mergeList(List<Exchange> exchanges,int top){
+//        List<Exchange> retList = new ArrayList<>();
+//        for (Exchange exchange : exchanges) {
+//            exchange
+//        }
+//    }
 
     public List<Exchange> querySell(Integer top){
         if (CollectionUtils.isEmpty(sellLeads))
@@ -92,6 +97,10 @@ public class ExchangeCenter {
         Integer buyQuantity = buyExchange.getQuantity();
         if(buyQuantity == 0)
             return null;
+        if (CollectionUtils.isEmpty(sellLeads)){
+            insertBuy(buyExchange);
+            return null;
+        }
         Exchange sell = sellLeads.getFirst();
         BigDecimal sellPrice = sell.getPrice();
         Integer sellQuantity = sell.getQuantity();
@@ -127,6 +136,10 @@ public class ExchangeCenter {
         Integer sellQuantity = sellExchange.getQuantity();
         if(sellQuantity == 0)
             return null;
+        if (CollectionUtils.isEmpty(buyingLeads)){
+            insertSell(sellExchange);
+            return null;
+        }
         Exchange buy = buyingLeads.getFirst();
         BigDecimal buyPrice = buy.getPrice();
         Integer buyQuantity = buy.getQuantity();
@@ -137,7 +150,7 @@ public class ExchangeCenter {
         lastPrice = buyPrice;
         if (buyQuantity <= sellQuantity) {
             sellExchange.setQuantity(sellQuantity - buyQuantity);
-            sellLeads.removeFirst();
+            buyingLeads.removeFirst();
             return fillTransaction(sellExchange.getUserId(),buy.getUserId(),lastPrice, buyQuantity);
         }else {
             sellExchange.setQuantity(0);
@@ -147,27 +160,42 @@ public class ExchangeCenter {
     }
 
     private void insertBuy(Exchange buyExchange){
+        if (CollectionUtils.isEmpty(buyingLeads)) {
+            buyingLeads.add(buyExchange);
+            return;
+        }
         for (int i = 0; i < buyingLeads.size(); i++) {
             if (buyingLeads.get(i).getPrice().compareTo(buyExchange.getPrice()) < 0) {
-                buyingLeads.set(i,buyExchange);
+                buyingLeads.add(i,buyExchange);
+                return;
             }
         }
+        buyingLeads.addLast(buyExchange);
     }
 
-    private void insertSell(Exchange buyExchange){
+    private void insertSell(Exchange sellExchange){
+        if (CollectionUtils.isEmpty(sellLeads)) {
+            sellLeads.add(sellExchange);
+            return;
+        }
         for (int i = 0; i < sellLeads.size(); i++) {
-            if (sellLeads.get(i).getPrice().compareTo(buyExchange.getPrice()) > 0) {
-                sellLeads.set(i,buyExchange);
+            if (sellLeads.get(i).getPrice().compareTo(sellExchange.getPrice()) > 0) {
+                sellLeads.add(i,sellExchange);
+                return;
             }
         }
+        sellLeads.addLast(sellExchange);
     }
 
     private Transaction fillTransaction(String buyUserId, String sellUserId , BigDecimal price , Integer quantity){
         Transaction transaction = new Transaction();
+        transaction.setTransId(UUID.randomUUID().toString());
         transaction.setFromUserId(buyUserId);
         transaction.setToUserId(sellUserId);
         transaction.setPrice(price);
         transaction.setQuantity(quantity);
+        transaction.setCreateTime(new Date());
+        transaction.setModifyTime(new Date());
         return transaction;
     }
 }

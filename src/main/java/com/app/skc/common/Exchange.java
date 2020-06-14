@@ -1,5 +1,6 @@
 package com.app.skc.common;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -12,6 +13,7 @@ public class Exchange {
     /**
      * 挂单用户
      */
+    @JsonIgnore
     private String userId;
     /**
      * 挂单价格
