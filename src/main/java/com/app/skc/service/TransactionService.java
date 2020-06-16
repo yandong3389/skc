@@ -54,7 +54,7 @@ public interface TransactionService extends IService<Transaction> {
      * @param cashOutMoney 提现金额
      * @return ResponseResult
      */
-    ResponseResult cashOut(String userId, String walletType, String payPassword, String toAddress, String cashOutMoney, String verCode, String verId) throws InterruptedException;
+    ResponseResult cashOut(String userId, String walletType, String payPassword, String toAddress, String cashOutMoney, String verCode, String verId) throws InterruptedException, IOException, ExecutionException, CipherException, BusinessException;
 
     /**
      * 买入

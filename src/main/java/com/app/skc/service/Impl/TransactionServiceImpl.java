@@ -162,7 +162,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         Transaction transaction = new Transaction();
         transaction.setTransId(BaseUtils.get64UUID());
         transaction.setFeeAmount(fee);
-        transaction.setCreateTime(new Date());
         transaction.setFromAmount(trans);
         transaction.setFromUserId(userId);
         transaction.setFromWalletAddress(fromWallet.getAddress());
@@ -175,6 +174,8 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         transaction.setToWalletType(walletType);
         transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
         transaction.setTransType(TransTypeEum.TRANSFER.getCode());
+        transaction.setCreateTime(new Date());
+        transaction.setModifyTime(new Date());
         transactionMapper.insert(transaction);
         walletMapper.updateById(fromWallet);
         walletMapper.updateById(toWallet);
@@ -327,7 +328,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
      * 从系统钱包提现出去
      *
      * @param toWalletAddress 到账地址
-     * @param userId          用户 id
      * @param walletType      用户钱包
      * @param trans           提现数量
      * @throws BusinessException
@@ -336,7 +336,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
      * @throws ExecutionException
      * @throws InterruptedException
      */
-    private void sysWalletOut(String fromWalletAddress, String toWalletAddress, String userId, String walletType, BigDecimal trans) throws BusinessException, IOException, CipherException, ExecutionException, InterruptedException {
+    private String sysWalletOut(String fromWalletAddress, String toWalletAddress, String walletType, BigDecimal trans) throws BusinessException, IOException, CipherException, ExecutionException, InterruptedException {
         Config walletAddress = configService.getByKey(SysConfigEum.WALLET_ADDRESS.getCode());
         Config walletPath = configService.getByKey(SysConfigEum.WALLET_PATH.getCode());
         if (WalletEum.SK.getCode().equals(walletType)) {
@@ -350,7 +350,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
                 throw new BusinessException("交易失败,USDT不足");
             }
         }
-        walletService.withdraw(fromWalletAddress, toWalletAddress, trans, walletPath.getConfigValue());
+        return walletService.withdraw(fromWalletAddress, toWalletAddress, trans, walletPath.getConfigValue());
     }
 
     /**
@@ -366,7 +366,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public ResponseResult cashOut(String userId, String walletType, String payPassword, String toAddress, String amount, String verCode, String verId) {
+    public ResponseResult cashOut(String userId, String walletType, String payPassword, String toAddress, String amount, String verCode, String verId) throws InterruptedException, IOException, ExecutionException, CipherException, BusinessException {
         ResponseResult paramsChkRes = transParamsChk(walletType, toAddress, amount);
         if (paramsChkRes != null) return paramsChkRes;
         BigDecimal cashOutAmt = new BigDecimal(amount);
@@ -396,15 +396,18 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
 
         Config needApproval = configService.getByKey(SysConfigEum.NEED_CASHOUT_VERIFY.getCode());
         boolean needVerify = false;
+        String transHash = "";
         if (needApproval != null && "Y".equals(needApproval.getConfigValue())) {
             needVerify = true;
+        } else {
+            transHash = sysWalletOut(fromWallet.getAddress(), toAddress, walletType, cashOutAmt);
         }
 
-        saveCashOut(userId, walletType, toAddress, cashOutAmt, fromWallet, fee, needVerify);
+        saveCashOut(userId, walletType, toAddress, cashOutAmt, fromWallet, fee, needVerify, transHash);
         return ResponseResult.success();
     }
 
-    private void saveCashOut(String userId, String walletType, String toAddress, BigDecimal cashOutAmt, Wallet fromWallet, BigDecimal fee, boolean needVerify) {
+    private void saveCashOut(String userId, String walletType, String toAddress, BigDecimal cashOutAmt, Wallet fromWallet, BigDecimal fee, boolean needVerify, String transHash) {
         // 设置转出账户余额
         BigDecimal fromBalTotal = fromWallet.getBalTotal();
         BigDecimal fromBalAvail = fromWallet.getBalAvail();
@@ -414,20 +417,22 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         // 交易记录保存
         Transaction transaction = new Transaction();
         transaction.setTransId(BaseUtils.get64UUID());
-        transaction.setFeeAmount(fee);
-        transaction.setCreateTime(new Date());
+        transaction.setTransType(TransTypeEum.OUT.getCode());
         transaction.setFromUserId(userId);
         transaction.setFromWalletType(walletType);
         transaction.setFromWalletAddress(fromWallet.getAddress());
         transaction.setFromAmount(cashOutAmt);
         transaction.setToAmount(cashOutAmt.subtract(transaction.getFeeAmount()));
         transaction.setToWalletAddress(toAddress);
+        transaction.setFeeAmount(fee);
         if (needVerify) {
             transaction.setTransStatus(TransStatusEnum.INIT.getCode());
         } else {
+            transaction.setTransHash(transHash);
             transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
         }
-        transaction.setTransType(TransTypeEum.OUT.getCode());
+        transaction.setCreateTime(new Date());
+        transaction.setModifyTime(new Date());
         transactionMapper.insert(transaction);
     }
 
