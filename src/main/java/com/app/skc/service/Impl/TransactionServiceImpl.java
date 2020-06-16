@@ -28,9 +28,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.web3j.crypto.CipherException;
 import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.DefaultBlockParameter;
-import org.web3j.protocol.core.methods.response.EthGetBalance;
-import org.web3j.utils.Convert;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -45,7 +42,7 @@ import static com.app.skc.enums.ApiErrEnum.NO_DEAL_PRICE;
 
 /**
  * <p>
- * 服务实现类
+ * 交易服务实现类
  * </p>
  *
  * @author
@@ -69,8 +66,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     private static String WALLTE_TYPE = "wallet_type";
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
-
-
     /**
      * 系统内部转账
      * @param toWalletAddress
@@ -87,18 +82,10 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     @Transactional(rollbackFor = Exception.class)
     @Override
     public ResponseResult transfer(String toWalletAddress, String amount, String userId, String walletType) throws InterruptedException, ExecutionException, BusinessException, CipherException, IOException {
-        if (!toWalletAddress.startsWith("0x") || toWalletAddress.length() != 42) {
-            return ResponseResult.fail(ApiErrEnum.ADDRESS_WALLET_FAIL);
-        }
-        if (!StringUtils.isNumeric(amount)) {
-            return ResponseResult.fail(ApiErrEnum.TRANS_AMOUNT_INVALID);
-        }
-        if (WalletEum.getByCode(walletType) == null) {
-            return ResponseResult.fail(ApiErrEnum.WALLET_TYPE_NOT_SUPPORTED);
-        }
+        ResponseResult paramsChkRes = transParamsChk(walletType, toWalletAddress, amount);
+        if (paramsChkRes != null) return paramsChkRes;
         //格式化转账金额
         BigDecimal transAmt = new BigDecimal(amount);
-        BigDecimal fee = new BigDecimal(0);
 
         //获取发起转账钱包
         EntityWrapper<Wallet> fromWalletWrapper = new EntityWrapper<>();
@@ -109,26 +96,33 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         if (fromWallets.size() > 0) {
             fromWallet = fromWallets.get(0);
         } else {
-            return ResponseResult.fail();
+            return ResponseResult.fail(ApiErrEnum.WALLET_NOT_MAINTAINED);
         }
         //获取到账钱包
         EntityWrapper<Wallet> toWalletWrapper = new EntityWrapper<>();
         toWalletWrapper.eq(ADDRESS, toWalletAddress);
         toWalletWrapper.eq(WALLTE_TYPE, walletType);
         List<Wallet> toWallets = walletMapper.selectList(toWalletWrapper);
-        Wallet toWallet = new Wallet();
+        Wallet toWallet;
         if (toWallets.size() > 0) {
-            //转账
             toWallet = toWallets.get(0);
-            Config config = configService.getByKey(SysConfigEum.SKC_TRANS_FEE.getCode());
-            String value = config.getConfigValue();
-            fee = transAmt.multiply(new BigDecimal(value));
-            if (transAmt.doubleValue() > fromWallet.getBalAvail().doubleValue()) {
-                return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
-            }
-            setTransBalance(transAmt, fee, fromWallet, toWallet);
+        } else {
+            return ResponseResult.fail(ApiErrEnum.WALLET_NOT_MAINTAINED);
         }
-        saveTransaction(userId, walletType, fromWallet, toWallet, transAmt, fee);
+        // 计算转账手续费
+        Config config;
+        if (WalletEum.SK.getCode().equals(walletType)) {
+            config = configService.getByKey(SysConfigEum.SKC_TRANS_FEE.getCode());
+        } else {
+            config = configService.getByKey(SysConfigEum.USDT_TRANS_FEE.getCode());
+        }
+        String value = config.getConfigValue();
+        BigDecimal fee = transAmt.multiply(new BigDecimal(value));
+        if (transAmt.doubleValue() > fromWallet.getBalAvail().doubleValue()) {
+            return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
+        }
+        setTransBalance(transAmt, fee, fromWallet, toWallet);
+        saveTransfer(userId, walletType, fromWallet, toWallet, transAmt, fee);
         return ResponseResult.success();
     }
 
@@ -155,37 +149,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     }
 
     /**
-     * 从系统钱包提现出去
-     *
-     * @param toWalletAddress 到账地址
-     * @param userId          用户 id
-     * @param walletType      用户钱包
-     * @param trans           提现数量
-     * @throws BusinessException
-     * @throws IOException
-     * @throws CipherException
-     * @throws ExecutionException
-     * @throws InterruptedException
-     */
-    private void sysWalletOut(String fromWalletAddress,String toWalletAddress, String userId, String walletType, BigDecimal trans) throws BusinessException, IOException, CipherException, ExecutionException, InterruptedException {
-        Config walletAddress = configService.getByKey(SysConfigEum.WALLET_ADDRESS.getCode());
-        Config walletPath = configService.getByKey(SysConfigEum.WALLET_PATH.getCode());
-        if (WalletEum.SK.getCode().equals(walletType)) {
-            BigDecimal mdcBalance = walletService.getERC20Balance(walletAddress.getConfigValue(), InfuraInfo.SKC_CONTRACT_ADDRESS.getDesc());
-            if (mdcBalance.doubleValue() < trans.doubleValue()) {
-                throw new BusinessException("交易失败,SKC不足");
-            }
-        } else if (WalletEum.USDT.getCode().equals(walletType)) {
-            BigDecimal usdtBalance = walletService.getERC20Balance(walletAddress.getConfigValue(), InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc());
-            if (usdtBalance.doubleValue() < trans.doubleValue()) {
-                throw new BusinessException("交易失败,USDT不足");
-            }
-        }
-        walletService.withdraw(fromWalletAddress,toWalletAddress,trans,walletPath.getConfigValue());
-    }
-
-    /**
-     * 保存交易信息
+     * 保存转账信息
      *
      * @param userId     用户 id
      * @param walletType 钱包类型
@@ -194,8 +158,9 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
      * @param trans      转账数量
      * @param fee        手续费
      */
-    private void saveTransaction(String userId, String walletType, Wallet fromWallet, Wallet toWallet, BigDecimal trans, BigDecimal fee) {
+    private void saveTransfer(String userId, String walletType, Wallet fromWallet, Wallet toWallet, BigDecimal trans, BigDecimal fee) {
         Transaction transaction = new Transaction();
+        transaction.setTransId(BaseUtils.get64UUID());
         transaction.setFeeAmount(fee);
         transaction.setCreateTime(new Date());
         transaction.setFromAmount(trans);
@@ -215,25 +180,40 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         walletMapper.updateById(toWallet);
     }
 
+    /**
+     * 根据交易类型分页查询交易记录
+     *
+     * @param page
+     * @param params
+     * @return
+     */
     @Override
-    public ResponseResult getETHBlance(Page page, Map <String, Object> params) {
-        PageHelper.startPage(Integer.parseInt(params.get("pageNum").toString()), Integer.parseInt(params.get("pageSize").toString()));
+    public ResponseResult transQueryByPage(Page page, Map<String, Object> params) {
+        PageHelper.startPage(page);
         params.remove("pageNum");
         params.remove("pageSize");
-        String transactionType = (String) params.get("transaction_type");
-        EntityWrapper <Transaction> entityWrapper = new EntityWrapper <>();
+        String transType = (String) params.get("trans_type");
+        EntityWrapper<Transaction> entityWrapper = new EntityWrapper<>();
         params.forEach((k, v) -> {
             if (!"transaction_type".equals(k)) {
                 entityWrapper.eq(k, v);
             } else {
-                entityWrapper.in("transaction_type", transactionType.split(","));
+                entityWrapper.in("transaction_type", transType.split(","));
             }
         });
         entityWrapper.orderDesc(SqlUtils.orderBy("create_time"));
-        List <Transaction> transactionList = transactionMapper.selectList(entityWrapper);
-        return ResponseResult.success().setData(new PageInfo <>(transactionList));
+        List<Transaction> transactionList = transactionMapper.selectList(entityWrapper);
+        return ResponseResult.success().setData(new PageInfo<>(transactionList));
     }
 
+    /**
+     * 充值交易
+     *
+     * @param userId    用户id
+     * @param toAddress 钱包address
+     * @param amount
+     * @return
+     */
     @Transactional(rollbackFor = Exception.class)
     @Override
     public ResponseResult invest(String userId, String toAddress, String amount) {
@@ -268,23 +248,12 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         return ResponseResult.success();
     }
 
-
-    private BigDecimal getETHBalance(String address) throws IOException {
-        EthGetBalance balance = web3j.ethGetBalance(address, DefaultBlockParameter.valueOf("latest")).send();
-        //格式转化 wei-ether
-        String blanceETH = Convert.fromWei(balance.getBalance().toString(), Convert.Unit.ETHER).toPlainString().concat(" ether").replace("ether", "");
-        if (blanceETH == null || "".equals(blanceETH.trim())) {
-            return new BigDecimal(0);
-        }
-        return new BigDecimal(blanceETH.trim());
-    }
-
     private void confirm(Date time, String fromAddress, String contractAddress, String money, String userId, String transactionId) {
         //定时第一次15分钟后执行
         System.out.println(DateUtil.getDate(DATE_FORMAT, 0, time));
         System.out.println(DateUtil.getDate(DATE_FORMAT, Calendar.MINUTE, 15, time));
         EntityWrapper <Wallet> walletEntityWrapper = new EntityWrapper <>();
-        walletEntityWrapper.eq("user_id", userId);
+        walletEntityWrapper.eq(USER_ID, userId);
         Wallet wallet = walletMapper.selectList(walletEntityWrapper).get(0);
         Config config = configService.getByKey(SysConfigEum.WALLET_ADDRESS.getCode());
         ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
@@ -347,61 +316,132 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         }
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    public void updateTransaction(String transactionId, String transactionStatus) {
+    private void updateTransaction(String transactionId, String transactionStatus) {
         Transaction transaction = transactionMapper.selectById(transactionId);
         transaction.setTransStatus(transactionStatus);
         transaction.setModifyTime(new Date());
         transactionMapper.updateById(transaction);
     }
 
+    /**
+     * 从系统钱包提现出去
+     *
+     * @param toWalletAddress 到账地址
+     * @param userId          用户 id
+     * @param walletType      用户钱包
+     * @param trans           提现数量
+     * @throws BusinessException
+     * @throws IOException
+     * @throws CipherException
+     * @throws ExecutionException
+     * @throws InterruptedException
+     */
+    private void sysWalletOut(String fromWalletAddress, String toWalletAddress, String userId, String walletType, BigDecimal trans) throws BusinessException, IOException, CipherException, ExecutionException, InterruptedException {
+        Config walletAddress = configService.getByKey(SysConfigEum.WALLET_ADDRESS.getCode());
+        Config walletPath = configService.getByKey(SysConfigEum.WALLET_PATH.getCode());
+        if (WalletEum.SK.getCode().equals(walletType)) {
+            BigDecimal mdcBalance = walletService.getERC20Balance(walletAddress.getConfigValue(), InfuraInfo.SKC_CONTRACT_ADDRESS.getDesc());
+            if (mdcBalance.doubleValue() < trans.doubleValue()) {
+                throw new BusinessException("交易失败,SKC不足");
+            }
+        } else if (WalletEum.USDT.getCode().equals(walletType)) {
+            BigDecimal usdtBalance = walletService.getERC20Balance(walletAddress.getConfigValue(), InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc());
+            if (usdtBalance.doubleValue() < trans.doubleValue()) {
+                throw new BusinessException("交易失败,USDT不足");
+            }
+        }
+        walletService.withdraw(fromWalletAddress, toWalletAddress, trans, walletPath.getConfigValue());
+    }
+
+    /**
+     * 系统提现到外部账户
+     *
+     * @param userId      用户id
+     * @param payPassword 支付密码
+     * @param toAddress   提现地址
+     * @param amount      提现金额
+     * @param verCode
+     * @param verId
+     * @return
+     */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public ResponseResult cashOutUSDT(String userId, String payPassword, String toAddress, String cashOutMoney, String verCode, String verId) throws InterruptedException {
-        if (!toAddress.startsWith("0x") || toAddress.length() != 42) {
-            return ResponseResult.fail(null);
-        }
-        BigDecimal cashOut = new BigDecimal(cashOutMoney);
-        EntityWrapper <Wallet> walletEntityWrapper = new EntityWrapper <>();
-        walletEntityWrapper.eq("user_id", userId);
-        List <Wallet> wallets = walletMapper.selectList(walletEntityWrapper);
-        Wallet wallet;
+    public ResponseResult cashOut(String userId, String walletType, String payPassword, String toAddress, String amount, String verCode, String verId) {
+        ResponseResult paramsChkRes = transParamsChk(walletType, toAddress, amount);
+        if (paramsChkRes != null) return paramsChkRes;
+        BigDecimal cashOutAmt = new BigDecimal(amount);
+
+        EntityWrapper<Wallet> fromWalletWrapper = new EntityWrapper<>();
+        fromWalletWrapper.eq(USER_ID, userId);
+        List<Wallet> fromWalletRes = walletMapper.selectList(fromWalletWrapper);
+        Wallet fromWallet;
         //判断钱包是否存在
-        Config config = configService.getByKey("USDT_CASH_OUT_FEE");
-        if (wallets.size() > 0) {
-            wallet = wallets.get(0);
-            //判断USTD余额和MDC余额 0-USDT 1-MDC
-            String value = config.getConfigValue();
-          /*  BigDecimal balance = wallet.getUstdBlance();
-            if(cashOut.doubleValue() > balance.doubleValue()){
-                return ResponseResult.fail(ApiErrEnum.ERR205);
-            }
-            if(cashOut.doubleValue() < new Double(value)){
-                return ResponseResult.fail("ERR209","提现金额必须大于手续费");
-            }
-            wallet.setUstdBlance(balance.subtract(cashOut));*/
-            walletMapper.updateById(wallet);
+        if (fromWalletRes.size() > 0) {
+            fromWallet = fromWalletRes.get(0);
         } else {
-            /*return ResponseResult.fail(ApiErrEnum.ERR204);*/
+            return ResponseResult.fail(ApiErrEnum.WALLET_NOT_MAINTAINED);
         }
-        Transaction transaction = new Transaction();
-        transaction.setFeeAmount(new BigDecimal(config.getConfigValue()));
-        transaction.setCreateTime(new Date());
-        transaction.setFromAmount(cashOut);
-        transaction.setFromUserId(userId);
-        /* transaction.setFromWalletAddress(wallet.getAddress());*/
-        //0-usdt
-        transaction.setFromWalletType("0");
-        transaction.setToAmount(cashOut.subtract(transaction.getFeeAmount()));
-        transaction.setToWalletAddress(toAddress);
-        //0-usdt
-        transaction.setToWalletType("0");
-        //0-交易进行中
-        transaction.setTransStatus("0");
-        //1-提现
-        transaction.setTransType("1");
-        transactionMapper.insert(transaction);
+        // 计算转账手续费
+        Config feeConfig;
+        if (WalletEum.SK.getCode().equals(walletType)) {
+            feeConfig = configService.getByKey(SysConfigEum.SKC_CASHOUT_FEE.getCode());
+        } else {
+            feeConfig = configService.getByKey(SysConfigEum.USDT_CASHOUT_FEE.getCode());
+        }
+        String feeValue = feeConfig.getConfigValue();
+        BigDecimal fee = cashOutAmt.multiply(new BigDecimal(feeValue));
+        if (cashOutAmt.doubleValue() > fromWallet.getBalAvail().doubleValue()) {
+            return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
+        }
+
+        Config needApproval = configService.getByKey(SysConfigEum.NEED_CASHOUT_VERIFY.getCode());
+        boolean needVerify = false;
+        if (needApproval != null && "Y".equals(needApproval.getConfigValue())) {
+            needVerify = true;
+        }
+
+        saveCashOut(userId, walletType, toAddress, cashOutAmt, fromWallet, fee, needVerify);
         return ResponseResult.success();
+    }
+
+    private void saveCashOut(String userId, String walletType, String toAddress, BigDecimal cashOutAmt, Wallet fromWallet, BigDecimal fee, boolean needVerify) {
+        // 设置转出账户余额
+        BigDecimal fromBalTotal = fromWallet.getBalTotal();
+        BigDecimal fromBalAvail = fromWallet.getBalAvail();
+        fromWallet.setBalTotal(fromBalTotal.subtract(cashOutAmt).subtract(fee));
+        fromWallet.setBalAvail(fromBalAvail.subtract(cashOutAmt).subtract(fee));
+        walletMapper.updateById(fromWallet);
+        // 交易记录保存
+        Transaction transaction = new Transaction();
+        transaction.setTransId(BaseUtils.get64UUID());
+        transaction.setFeeAmount(fee);
+        transaction.setCreateTime(new Date());
+        transaction.setFromUserId(userId);
+        transaction.setFromWalletType(walletType);
+        transaction.setFromWalletAddress(fromWallet.getAddress());
+        transaction.setFromAmount(cashOutAmt);
+        transaction.setToAmount(cashOutAmt.subtract(transaction.getFeeAmount()));
+        transaction.setToWalletAddress(toAddress);
+        if (needVerify) {
+            transaction.setTransStatus(TransStatusEnum.INIT.getCode());
+        } else {
+            transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
+        }
+        transaction.setTransType(TransTypeEum.OUT.getCode());
+        transactionMapper.insert(transaction);
+    }
+
+    private ResponseResult transParamsChk(String walletType, String toAddress, String amount) {
+        if (!toAddress.startsWith("0x") || toAddress.length() != 42) {
+            return ResponseResult.fail(ApiErrEnum.ADDRESS_WALLET_FAIL);
+        }
+        if (!StringUtils.isNumeric(amount)) {
+            return ResponseResult.fail(ApiErrEnum.TRANS_AMOUNT_INVALID);
+        }
+        if (WalletEum.getByCode(walletType) == null) {
+            return ResponseResult.fail(ApiErrEnum.WALLET_TYPE_NOT_SUPPORTED);
+        }
+        return null;
     }
 
 

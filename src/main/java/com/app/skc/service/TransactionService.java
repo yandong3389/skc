@@ -29,10 +29,11 @@ public interface TransactionService extends IService<Transaction> {
     ResponseResult transfer(String toWalletAddress, String transferNumber, String userId, String walletType) throws InterruptedException, ExecutionException, BusinessException, CipherException, IOException;
 
     /**
-     * ETH钱包余额查询
+     * 根据交易类型分页查询交易记录
+     *
      * @return ResponseResult
      */
-    ResponseResult getETHBlance(Page page, Map<String,Object> params);
+    ResponseResult transQueryByPage(Page page, Map<String, Object> params);
 
     /**
      * 充值
@@ -53,7 +54,7 @@ public interface TransactionService extends IService<Transaction> {
      * @param cashOutMoney 提现金额
      * @return ResponseResult
      */
-    ResponseResult cashOutUSDT(String userId, String payPassword, String toAddress, String cashOutMoney, String verCode, String verId) throws InterruptedException;
+    ResponseResult cashOut(String userId, String walletType, String payPassword, String toAddress, String cashOutMoney, String verCode, String verId) throws InterruptedException;
 
     /**
      * 买入

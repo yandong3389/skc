@@ -58,7 +58,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     @Autowired
     private final WalletMapper walletMapper;
     private static final String LOG_PREFIX = "[钱包服务] - ";
-    private static String walletStoreDir = "/Users/Dylan/Desktop/wallet";
+    private static String walletStoreDir = "E:\\workspace";
     @Autowired
     public WalletServiceImpl(WalletMapper walletMapper){
         this.walletMapper = walletMapper;
