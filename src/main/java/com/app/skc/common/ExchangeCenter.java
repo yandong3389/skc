@@ -28,13 +28,15 @@ public class ExchangeCenter {
      */
     private BigDecimal lastPrice;
 
-    private ExchangeCenter(){}
+    private ExchangeCenter() {
+    }
 
     /**
      * 获取数据中心单例
+     *
      * @return 数据中心
      */
-    public static ExchangeCenter getInstance(){
+    public static ExchangeCenter getInstance() {
         if (exchangeCenter != null)
             return exchangeCenter;
         exchangeCenter = init();
@@ -43,9 +45,10 @@ public class ExchangeCenter {
 
     /**
      * 初始化数据中心
+     *
      * @return 数据中心
      */
-    private static ExchangeCenter init(){
+    private static ExchangeCenter init() {
         ExchangeCenter exchangeCenter = new ExchangeCenter();
         exchangeCenter.buyingLeads = new LinkedList<>();
         exchangeCenter.sellLeads = new LinkedList<>();
@@ -53,7 +56,7 @@ public class ExchangeCenter {
         return exchangeCenter;
     }
 
-    public BigDecimal price(){
+    public BigDecimal price() {
         return lastPrice;
     }
 
@@ -86,11 +89,11 @@ public class ExchangeCenter {
         return mergeList(sellLeads);
     }
 
-    public List<Transaction> buy(String buyUserId, BigDecimal buyPrice, Integer buyQuantity){
+    public List<Transaction> buy(String buyUserId, BigDecimal buyPrice, Integer buyQuantity) {
         List<Transaction> transactionList = new ArrayList<>();
-        Exchange exchange = new Exchange(buyUserId,buyPrice,buyQuantity);
+        Exchange exchange = new Exchange(buyUserId, buyPrice, buyQuantity);
         Transaction transaction = buyFirst(exchange);
-        while (transaction != null){
+        while (transaction != null) {
             transactionList.add(transaction);
             transaction.insert();
             transaction = buyFirst(exchange);
@@ -98,11 +101,11 @@ public class ExchangeCenter {
         return transactionList;
     }
 
-    private Transaction buyFirst(Exchange buyExchange){
+    private Transaction buyFirst(Exchange buyExchange) {
         Integer buyQuantity = buyExchange.getQuantity();
-        if(buyQuantity == 0)
+        if (buyQuantity == 0)
             return null;
-        if (CollectionUtils.isEmpty(sellLeads)){
+        if (CollectionUtils.isEmpty(sellLeads)) {
             insertBuy(buyExchange);
             return null;
         }
@@ -125,11 +128,11 @@ public class ExchangeCenter {
         }
     }
 
-    public List<Transaction> sell(String buyUserId, BigDecimal buyPrice, Integer sellQuantity){
+    public List<Transaction> sell(String buyUserId, BigDecimal buyPrice, Integer sellQuantity) {
         List<Transaction> transactionList = new ArrayList<>();
-        Exchange exchange = new Exchange(buyUserId,buyPrice,sellQuantity);
+        Exchange exchange = new Exchange(buyUserId, buyPrice, sellQuantity);
         Transaction transaction = sellFirst(exchange);
-        while (transaction != null){
+        while (transaction != null) {
             transactionList.add(transaction);
             transaction.insert();
             transaction = sellFirst(exchange);
@@ -137,11 +140,11 @@ public class ExchangeCenter {
         return transactionList;
     }
 
-    private Transaction sellFirst(Exchange sellExchange){
+    private Transaction sellFirst(Exchange sellExchange) {
         Integer sellQuantity = sellExchange.getQuantity();
-        if(sellQuantity == 0)
+        if (sellQuantity == 0)
             return null;
-        if (CollectionUtils.isEmpty(buyingLeads)){
+        if (CollectionUtils.isEmpty(buyingLeads)) {
             insertSell(sellExchange);
             return null;
         }
@@ -164,28 +167,28 @@ public class ExchangeCenter {
         }
     }
 
-    private void insertBuy(Exchange buyExchange){
+    private void insertBuy(Exchange buyExchange) {
         if (CollectionUtils.isEmpty(buyingLeads)) {
             buyingLeads.add(buyExchange);
             return;
         }
         for (int i = 0; i < buyingLeads.size(); i++) {
             if (buyingLeads.get(i).getPrice().compareTo(buyExchange.getPrice()) < 0) {
-                buyingLeads.add(i,buyExchange);
+                buyingLeads.add(i, buyExchange);
                 return;
             }
         }
         buyingLeads.addLast(buyExchange);
     }
 
-    private void insertSell(Exchange sellExchange){
+    private void insertSell(Exchange sellExchange) {
         if (CollectionUtils.isEmpty(sellLeads)) {
             sellLeads.add(sellExchange);
             return;
         }
         for (int i = 0; i < sellLeads.size(); i++) {
             if (sellLeads.get(i).getPrice().compareTo(sellExchange.getPrice()) > 0) {
-                sellLeads.add(i,sellExchange);
+                sellLeads.add(i, sellExchange);
                 return;
             }
         }

@@ -41,4 +41,5 @@ public class Wallet extends Model<Wallet> {
     protected Serializable pkVal() {
         return null;
     }
+
 }

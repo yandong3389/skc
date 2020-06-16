@@ -46,40 +46,45 @@ public interface TransactionService extends IService<Transaction> {
 
     /**
      * 提现
-     * @param userId 用户id
-     * @param payPassword 支付密码
-     * @param toAddress 提现地址
+     *
+     * @param userId       用户id
+     * @param payPassword  支付密码
+     * @param toAddress    提现地址
      * @param cashOutMoney 提现金额
      * @return ResponseResult
      */
-    ResponseResult cashOutUSDT(String userId,String payPassword,String toAddress,String cashOutMoney,String verCode, String verId) throws InterruptedException;
+    ResponseResult cashOutUSDT(String userId, String payPassword, String toAddress, String cashOutMoney, String verCode, String verId) throws InterruptedException;
 
     /**
      * 买入
-     * @param userId 用户id
-     * @param price 单价
+     *
+     * @param userId   用户id
+     * @param price    单价
      * @param quantity 数量
      * @return
      */
-    ResponseResult buy(String userId,String price, Integer quantity);
+    ResponseResult buy(String userId, String price, Integer quantity);
 
     /**
      * 卖出
-     * @param userId 用户id
-     * @param price 单价
+     *
+     * @param userId   用户id
+     * @param price    单价
      * @param quantity 数量
      * @return
      */
-    ResponseResult sell(String userId,String price, Integer quantity);
+    ResponseResult sell(String userId, String price, Integer quantity);
 
     /**
      * 查询买入列表
+     *
      * @return
      */
     ResponseResult queryBuy();
 
     /**
      * 查询卖出列表
+     *
      * @return
      */
     ResponseResult querySell();
