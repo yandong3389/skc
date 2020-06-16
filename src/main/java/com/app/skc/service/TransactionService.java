@@ -81,14 +81,14 @@ public interface TransactionService extends IService<Transaction> {
      *
      * @return
      */
-    ResponseResult queryBuy(Integer top);
+    ResponseResult queryBuy();
 
     /**
      * 查询卖出列表
      *
      * @return
      */
-    ResponseResult querySell(Integer top);
+    ResponseResult querySell();
 
     /**
      * 最新成交价

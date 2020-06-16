@@ -10,6 +10,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.web3j.crypto.CipherException;
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.WalletUtils;
+import org.web3j.protocol.Web3j;
 
 import java.io.IOException;
 
@@ -20,16 +23,22 @@ import java.io.IOException;
 @RequestMapping("/skc/api/wallet")
 public class WalletController {
 	@Autowired
-	private  WalletService walletService;
+	private WalletService walletService;
+	@Autowired
+	private Web3j web3j;
 
 	/**
 	 * 获取用户钱包余额信息
-	 * @param userId 用户 ID
+	 *
+	 * @param userId     用户 ID
 	 * @param walletType 钱包类型
 	 * @return
 	 */
 	@GetMapping("/balance")
-	public ResponseResult query(String userId, String walletType){
+	public ResponseResult query(String userId, String walletType) throws IOException, CipherException {
+
+		Credentials credentials = WalletUtils.loadCredentials("", "/Users/Dylan/Desktop/wallet/UTC--2020-06-13T06-41-47.382000000Z--5bc413403be2d5c0503e89b569b42c0b8f690273.json");
+		System.out.println(JSONObject.toJSONString(credentials));
 		return null;
 	}
 
