@@ -69,15 +69,18 @@ public class ExchangeCenter {
     private List<Exchange> mergeList(List<Exchange> exchanges){
         List<Exchange> retList = new ArrayList<>();
         for (Exchange exchange : exchanges) {
+            Exchange ex = new Exchange();
+            ex.setQuantity(exchange.getQuantity());
+            ex.setPrice(exchange.getPrice());
             if (retList.size() == 0){
-                retList.add(exchange);
+                retList.add(ex);
                 continue;
             }
             Exchange lastExchange = retList.get(retList.size() - 1);
-            if (lastExchange.getPrice().equals(exchange.getPrice())){
-                lastExchange.setQuantity(lastExchange.getQuantity() + exchange.getQuantity());
+            if (lastExchange.getPrice().equals(ex.getPrice())){
+                lastExchange.setQuantity(lastExchange.getQuantity() + ex.getQuantity());
             }else {
-                retList.add(exchange);
+                retList.add(ex);
             }
         }
         return retList;
