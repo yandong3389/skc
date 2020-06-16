@@ -219,13 +219,13 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         PageHelper.startPage(Integer.parseInt(params.get("pageNum").toString()), Integer.parseInt(params.get("pageSize").toString()));
         params.remove("pageNum");
         params.remove("pageSize");
-        String transactionType = (String) params.get("transaction_type");
+        String transactionType = (String) params.get("trans_type");
         EntityWrapper <Transaction> entityWrapper = new EntityWrapper <>();
         params.forEach((k, v) -> {
-            if (!"transaction_type".equals(k)) {
+            if (!"trans_type".equals(k)) {
                 entityWrapper.eq(k, v);
             } else {
-                entityWrapper.in("transaction_type", transactionType.split(","));
+                entityWrapper.in("trans_type", transactionType.split(","));
             }
         });
         entityWrapper.orderDesc(SqlUtils.orderBy("create_time"));
@@ -426,16 +426,16 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     }
 
     @Override
-    public ResponseResult queryBuy(Integer top) {
-        List<Exchange> buyList = ExchangeCenter.getInstance().queryBuy(top);
+    public ResponseResult queryBuy() {
+        List<Exchange> buyList = ExchangeCenter.getInstance().queryBuy();
         if (buyList == null)
             return ResponseResult.fail(NO_COMMISSION);
         return ResponseResult.success("",buyList);
     }
 
     @Override
-    public ResponseResult querySell(Integer top) {
-        List<Exchange> sellList = ExchangeCenter.getInstance().querySell(top);
+    public ResponseResult querySell() {
+        List<Exchange> sellList = ExchangeCenter.getInstance().querySell();
         if (sellList == null)
             return ResponseResult.fail(NO_COMMISSION);
         return ResponseResult.success("",sellList);
