@@ -1,7 +1,9 @@
 package com.app.skc.controller;
 
 
+import com.app.skc.enums.TransTypeEum;
 import com.app.skc.service.TransactionService;
+import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -10,6 +12,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * <p>
@@ -43,25 +48,41 @@ public class ExchangeController {
         return transactionService.price();
     }
 
-    /**
-     * 获取交易对买入队列
-     */
-    @ApiOperation(value = "获取交易对买入队列", notes = "获取交易对买入队列")
-    @GetMapping("/queue/buy")
-    @ResponseBody
-    public ResponseResult queueBuy(@RequestParam(required = false) Integer top) {
-        return transactionService.queryBuy(top);
-    }
+	/**
+	 * 获取交易对列表
+	 */
+	@ApiOperation(value="获取交易对列表", notes="获取交易对列表")
+	@GetMapping("/coin/list")
+	@ResponseBody
+	public ResponseResult coinList(@RequestParam Map<String, Object> map, Page page) {
+		if (page == null)
+			page = new Page();
+		if (map == null){
+			map = new HashMap<>();
+		}
+		map.putIfAbsent("trans_type", String.join(",",TransTypeEum.BUY.getCode(), TransTypeEum.SELL.getCode()));
+		return transactionService.getETHBlance(page,map);
+	}
 
-    /**
-     * 获取交易对卖出队列
-     */
-    @ApiOperation(value = "获取交易对卖出队列", notes = "获取交易对卖出队列")
-    @GetMapping("/queue/sell")
-    @ResponseBody
-    public ResponseResult queueSell(@RequestParam(required = false) Integer top) {
-        return transactionService.querySell(top);
-    }
+	/**
+	 * 获取交易对买入队列
+	 */
+	@ApiOperation(value="获取交易对买入队列", notes="获取交易对买入队列")
+	@GetMapping("/queue/buy")
+	@ResponseBody
+	public ResponseResult queueBuy() {
+		return transactionService.queryBuy();
+	}
+
+	/**
+	 * 获取交易对卖出队列
+	 */
+	@ApiOperation(value="获取交易对卖出队列", notes="获取交易对卖出队列")
+	@GetMapping("/queue/sell")
+	@ResponseBody
+	public ResponseResult queueSell() {
+		return transactionService.querySell();
+	}
 
     /**
      * 主动买入

@@ -1,5 +1,6 @@
 package com.app.skc.common;
 
+import com.app.skc.enums.TransTypeEum;
 import com.app.skc.model.Transaction;
 import org.springframework.util.CollectionUtils;
 
@@ -59,29 +60,33 @@ public class ExchangeCenter {
         return lastPrice;
     }
 
-    public List<Exchange> queryBuy(Integer top) {
+    public List<Exchange> queryBuy(){
         if (CollectionUtils.isEmpty(buyingLeads))
             return null;
-        if (top == null || top == 0) {
-            return buyingLeads;
-        }
-        return buyingLeads.subList(0, Math.min(top, buyingLeads.size()));
+        return mergeList(buyingLeads);
     }
-//
-//    private List<Exchange> mergeList(List<Exchange> exchanges,int top){
-//        List<Exchange> retList = new ArrayList<>();
-//        for (Exchange exchange : exchanges) {
-//            exchange
-//        }
-//    }
 
-    public List<Exchange> querySell(Integer top) {
+    private List<Exchange> mergeList(List<Exchange> exchanges){
+        List<Exchange> retList = new ArrayList<>();
+        for (Exchange exchange : exchanges) {
+            if (retList.size() == 0){
+                retList.add(exchange);
+                continue;
+            }
+            Exchange lastExchange = retList.get(retList.size() - 1);
+            if (lastExchange.getPrice().equals(exchange.getPrice())){
+                lastExchange.setQuantity(lastExchange.getQuantity() + exchange.getQuantity());
+            }else {
+                retList.add(exchange);
+            }
+        }
+        return retList;
+    }
+
+    public List<Exchange> querySell(){
         if (CollectionUtils.isEmpty(sellLeads))
             return null;
-        if (top == null || top == 0) {
-            return sellLeads;
-        }
-        return sellLeads.subList(0, Math.min(top, sellLeads.size()));
+        return mergeList(sellLeads);
     }
 
     public List<Transaction> buy(String buyUserId, BigDecimal buyPrice, Integer buyQuantity) {
@@ -115,11 +120,11 @@ public class ExchangeCenter {
         if (sellQuantity <= buyQuantity) {
             buyExchange.setQuantity(buyQuantity - sellQuantity);
             sellLeads.removeFirst();
-            return fillTransaction(buyExchange.getUserId(), sell.getUserId(), lastPrice, sellQuantity);
-        } else {
+            return fillTransaction(buyExchange.getUserId(),sell.getUserId(),TransTypeEum.BUY,lastPrice, sellQuantity);
+        }else {
             buyExchange.setQuantity(0);
             sell.setQuantity(sellQuantity - buyQuantity);
-            return fillTransaction(buyExchange.getUserId(), sell.getUserId(), lastPrice, buyQuantity);
+            return fillTransaction(buyExchange.getUserId(),sell.getUserId(),TransTypeEum.BUY,lastPrice, buyQuantity);
         }
     }
 
@@ -154,11 +159,11 @@ public class ExchangeCenter {
         if (buyQuantity <= sellQuantity) {
             sellExchange.setQuantity(sellQuantity - buyQuantity);
             buyingLeads.removeFirst();
-            return fillTransaction(sellExchange.getUserId(), buy.getUserId(), lastPrice, buyQuantity);
-        } else {
+            return fillTransaction(sellExchange.getUserId(),buy.getUserId(),TransTypeEum.SELL,lastPrice, buyQuantity);
+        }else {
             sellExchange.setQuantity(0);
             buy.setQuantity(buyQuantity - sellQuantity);
-            return fillTransaction(sellExchange.getUserId(), buy.getUserId(), lastPrice, sellQuantity);
+            return fillTransaction(sellExchange.getUserId(),buy.getUserId(),TransTypeEum.SELL,lastPrice, sellQuantity);
         }
     }
 
@@ -190,13 +195,14 @@ public class ExchangeCenter {
         sellLeads.addLast(sellExchange);
     }
 
-    private Transaction fillTransaction(String buyUserId, String sellUserId, BigDecimal price, Integer quantity) {
+    private Transaction fillTransaction(String buyUserId, String sellUserId , TransTypeEum transType, BigDecimal price , Integer quantity){
         Transaction transaction = new Transaction();
         transaction.setTransId(UUID.randomUUID().toString());
         transaction.setFromUserId(buyUserId);
         transaction.setToUserId(sellUserId);
         transaction.setPrice(price);
         transaction.setQuantity(quantity);
+        transaction.setTransType(transType.getCode());
         transaction.setCreateTime(new Date());
         transaction.setModifyTime(new Date());
         return transaction;
