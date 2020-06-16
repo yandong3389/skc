@@ -44,7 +44,7 @@ public class TransactionController {
 	@PostMapping("/getTransaction")
 	@ResponseBody
 	public ResponseResult getTransaction(@RequestParam Map<String, Object> map, Page page) {
-		return transactionService.getETHBlance(page,map);
+		return transactionService.transQueryByPage(page, map);
 	}
 
 	/**
@@ -80,11 +80,11 @@ public class TransactionController {
 	 */
 	@PostMapping("/cashOut")
 	@ResponseBody
-	public ResponseResult cashOut(@RequestParam String userId,@RequestParam String payPassword,@RequestParam String toAddress,@RequestParam String cashOutMoney,@RequestParam String verCode,@RequestParam String verId) {
+	public ResponseResult cashOut(@RequestParam String userId, @RequestParam String payPassword, @RequestParam String walletType, @RequestParam String toAddress, @RequestParam String cashOutMoney, @RequestParam String verCode, @RequestParam String verId) {
 		try {
-			return transactionService.cashOutUSDT(userId, payPassword, toAddress, cashOutMoney,verCode,verId);
-		}catch (Exception e){
-			return ResponseResult.fail("-999",e.getMessage());
+			return transactionService.cashOut(userId, payPassword, walletType, toAddress, cashOutMoney, verCode, verId);
+		} catch (Exception e) {
+			return ResponseResult.fail("-999", e.getMessage());
 		}
 
 	}
