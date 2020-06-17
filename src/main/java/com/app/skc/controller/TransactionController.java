@@ -25,7 +25,7 @@ import java.util.Map;
  */
 @Api(value = "TransactionController", description = "交易接口-充值，提现，转账，闪兑及其记录")
 @Controller
-@RequestMapping("/mdc/transaction")
+@RequestMapping("/transaction")
 public class TransactionController {
 
 	private final TransactionService transactionService;

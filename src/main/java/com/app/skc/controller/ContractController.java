@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 合约制度
  */
-@RequestMapping("/skc/api/contract")
+@RequestMapping("/contract")
 @RestController
 public class ContractController {
 

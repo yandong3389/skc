@@ -3,7 +3,6 @@ package com.app.skc.controller;
 
 import com.alibaba.fastjson.JSONObject;
 import com.app.skc.enums.ApiErrEnum;
-import com.app.skc.model.Wallet;
 import com.app.skc.service.TransactionService;
 import com.app.skc.service.WalletService;
 import com.app.skc.utils.viewbean.Page;
@@ -22,7 +21,7 @@ import java.io.IOException;
  * 用户钱包
  */
 @RestController
-@RequestMapping("/skc/api/wallet")
+@RequestMapping("/wallet")
 public class WalletController {
 	@Autowired
 	private WalletService walletService;

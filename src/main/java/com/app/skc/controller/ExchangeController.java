@@ -26,7 +26,7 @@ import java.util.Map;
  */
 @Api(value = "ExchangeController", description = "交易接口-获取最新成交价格，买入，卖出，订单")
 @Controller
-@RequestMapping("/skc/api/exchange")
+@RequestMapping("/exchange")
 public class ExchangeController {
 
     private static final Logger logger = LoggerFactory.getLogger(ExchangeController.class);
