@@ -34,13 +34,14 @@ public class TransactionController {
 	public TransactionController(TransactionService transactionService) {
 		this.transactionService=transactionService;
 	}
-	
+
 	/**
 	 * 获取交易记录
-	 * @param map
-	 * @return 返回的结果，0正确ERR500错误
+	 * @param map 参数
+	 * @param page 分页参数
+	 * @return
 	 */
-	@ApiOperation(value="交易记录", notes="获取充值，提现，转账，闪兑记录")
+	@ApiOperation(value="交易记录", notes="获取交易记录")
 	@PostMapping("/getTransaction")
 	@ResponseBody
 	public ResponseResult getTransaction(@RequestParam Map<String, Object> map, Page page) {

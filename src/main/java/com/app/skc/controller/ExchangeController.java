@@ -119,5 +119,26 @@ public class ExchangeController {
             return ResponseResult.fail("ERR500", e.getMessage());
         }
     }
+
+    /**
+     * 获取当前委托信息
+     * @param userId 用户id
+     * @return ResponseResult
+     */
+    public ResponseResult getEntrust(@RequestParam String userId){
+        return ResponseResult.success();
+    }
+
+    /**
+     * 取消委托
+     * @param userId 用户 id
+     * @param entrustOrder 委托订单号
+     * @return ResponseResult
+     */
+    public ResponseResult cancelEntrust(@RequestParam String userId,@RequestParam String entrustOrder){
+        return ResponseResult.success();
+    }
+
+
 }
 
