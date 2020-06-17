@@ -125,8 +125,16 @@ public class ExchangeController {
      * @param userId 用户id
      * @return ResponseResult
      */
+    @ApiOperation(value = "获取当前委托信息", notes = "获取当前委托信息")
+    @GetMapping("/order/getEntrust")
+    @ResponseBody
     public ResponseResult getEntrust(@RequestParam String userId){
-        return ResponseResult.success();
+        try {
+            return transactionService.getEntrust(userId);
+        }catch (Exception e){
+            logger.error("获取当前委托信息",e);
+            return ResponseResult.fail("ERR500", e.getMessage());
+        }
     }
 
     /**
@@ -135,8 +143,16 @@ public class ExchangeController {
      * @param entrustOrder 委托订单号
      * @return ResponseResult
      */
+    @ApiOperation(value = "取消委托", notes = "取消委托")
+    @PostMapping("/order/cancelEntrust")
+    @ResponseBody
     public ResponseResult cancelEntrust(@RequestParam String userId,@RequestParam String entrustOrder){
-        return ResponseResult.success();
+        try{
+            return transactionService.cancelEntrust(userId,entrustOrder);
+        }catch (Exception e){
+            logger.error("取消委托",e);
+            return ResponseResult.fail("ERR500", e.getMessage());
+        }
     }
 
 

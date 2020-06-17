@@ -13,7 +13,6 @@ import com.app.skc.service.TransactionService;
 import com.app.skc.service.WalletService;
 import com.app.skc.service.system.ConfigService;
 import com.app.skc.utils.BaseUtils;
-import com.app.skc.utils.date.DateUtil;
 import com.app.skc.utils.jdbc.SqlUtils;
 import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
@@ -23,7 +22,6 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.web3j.crypto.CipherException;
@@ -31,10 +29,7 @@ import org.web3j.protocol.Web3j;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 import static com.app.skc.enums.ApiErrEnum.NO_COMMISSION;
@@ -389,5 +384,36 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             return ResponseResult.fail(NO_DEAL_PRICE);
         }
         return ResponseResult.success("", price);
+    }
+
+    @Override
+    public ResponseResult getEntrust(String userId) {
+        List<Exchange> exchanges = new ArrayList<>();
+        Exchange exchange = new Exchange();
+        exchange.setUserId(userId);
+        exchange.setEntrustOrder(UUID.randomUUID().toString());
+        exchange.setPrice(new BigDecimal("11.11"));
+        exchange.setQuantity(100);
+        exchange.setType(TransTypeEum.BUY.getCode());
+        exchanges.add(exchange);
+        Exchange sellExchange = new Exchange();
+        sellExchange.setUserId(userId);
+        sellExchange.setEntrustOrder(UUID.randomUUID().toString());
+        sellExchange.setPrice(new BigDecimal("10.01"));
+        sellExchange.setQuantity(100);
+        sellExchange.setType(TransTypeEum.SELL.getCode());
+        exchanges.add(sellExchange);
+        return ResponseResult.success("",exchanges);
+    }
+
+    @Override
+    public ResponseResult cancelEntrust(String userId, String entrustOrder) {
+        Exchange exchange = new Exchange();
+        exchange.setUserId(userId);
+        exchange.setEntrustOrder(entrustOrder);
+        exchange.setPrice(new BigDecimal("10.01"));
+        exchange.setQuantity(100);
+        exchange.setType(TransTypeEum.SELL.getCode());
+        return ResponseResult.success("取消成功",exchange);
     }
 }

@@ -51,7 +51,6 @@ public interface TransactionService extends IService<Transaction> {
      * @param userId   用户id
      * @param price    单价
      * @param quantity 数量
-     * @return
      */
     ResponseResult buy(String userId, String price, Integer quantity);
 
@@ -61,26 +60,30 @@ public interface TransactionService extends IService<Transaction> {
      * @param userId   用户id
      * @param price    单价
      * @param quantity 数量
-     * @return
      */
     ResponseResult sell(String userId, String price, Integer quantity);
 
     /**
      * 查询买入列表
-     *
-     * @return
      */
     ResponseResult queryBuy();
 
     /**
      * 查询卖出列表
-     *
-     * @return
      */
     ResponseResult querySell();
 
     /**
+     * 获取当前委托信息
+     */
+    ResponseResult getEntrust(String userId);
+    /**
      * 最新成交价
      */
     ResponseResult price();
+
+    /**
+     * 取消委托
+     */
+    ResponseResult cancelEntrust(String userId, String entrustOrder);
 }
