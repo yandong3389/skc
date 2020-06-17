@@ -1,5 +1,7 @@
 package com.app.skc.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.app.skc.enums.TransTypeEum;
 import com.app.skc.model.Contract;
 import com.app.skc.model.Transaction;
@@ -30,12 +32,15 @@ public class ContractController {
 
     /**
      * 购买合约
-     * @param id 合约 id
-     * @param userId 用户id
+     * @param jsonObject code 合约 code && userId 用户id
      * @return
      */
     @PostMapping("/buy")
-    public ResponseResult buy(String id,String userId){
+    public ResponseResult buy(@RequestBody JSONObject jsonObject){
+        logger.info("{}开始购买合约,请求参数[{}]",LOG_PREFIX,jsonObject.toJSONString());
+        String userId = jsonObject.getString("userId");
+        String code = jsonObject.getString("code");
+        logger.info("{}购买完成",LOG_PREFIX);
         return  ResponseResult.success();
     }
 
@@ -54,10 +59,12 @@ public class ContractController {
     /**
      * 获取合约购买记录
      * @param userId 用户 ID
-     * @return
+     * @param page 分页信息
+     * @return ResponseResult
      */
     @GetMapping("history")
     public ResponseResult getHistory(Page page,@RequestParam String userId){
+        logger.info("{}开始查询合约购买历史,page=[{}],userId=[{}]",LOG_PREFIX, JSON.toJSONString(page),userId);
         Transaction transaction = new Transaction();
         transaction.setFromUserId(userId);
         transaction.setPrice(new BigDecimal(1000));
@@ -67,6 +74,7 @@ public class ContractController {
         List list = new ArrayList();
         list.add(transaction);
         list.add(transaction);
+        logger.info("{}查询成功,查询到[{}]条记录",LOG_PREFIX,list.size());
         return ResponseResult.success().setData(new PageInfo<>(list));
     }
 
