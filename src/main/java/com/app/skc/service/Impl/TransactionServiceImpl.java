@@ -26,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.web3j.crypto.CipherException;
 import org.web3j.protocol.Web3j;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;

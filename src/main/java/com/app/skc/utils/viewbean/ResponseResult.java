@@ -62,7 +62,7 @@ public class ResponseResult {
 		ResponseResult result=new ResponseResult();
 		result.setCode("0");
 		result.setMsg("请求成功");
-		result.setStatus("0");
+		result.setStatus("success");
 		return result;
 	}
 
@@ -76,7 +76,7 @@ public class ResponseResult {
 		result.setCode("0");
 		result.setMsg(msg);
 		result.setData(data);
-		result.setStatus("0");
+		result.setStatus("success");
 		return result;
 	}
 
@@ -88,7 +88,7 @@ public class ResponseResult {
 		ResponseResult result=new ResponseResult();
 		result.setCode("ERR500");
 		result.setMsg("请求失败");
-		result.setStatus("-1");
+		result.setStatus("fail");
 		return result;
 	}
 
@@ -99,7 +99,7 @@ public class ResponseResult {
 		ResponseResult result=new ResponseResult();
 		result.setCode(code);
 		result.setMsg(msg);
-		result.setStatus("-1");
+		result.setStatus("fail");
 		return result;
 	}
 
@@ -110,7 +110,7 @@ public class ResponseResult {
 		ResponseResult result=new ResponseResult();
 		result.setCode(errEnum.getCode());
 		result.setMsg(errEnum.getDesc());
-		result.setStatus("-1");
+		result.setStatus("fail");
 		return result;
 	}
 
