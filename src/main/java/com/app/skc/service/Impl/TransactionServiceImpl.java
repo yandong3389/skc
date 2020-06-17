@@ -83,7 +83,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     @Override
     public ResponseResult transfer(String toWalletAddress, String amount, String userId, String walletType) throws InterruptedException, ExecutionException, BusinessException, CipherException, IOException {
         ResponseResult paramsChkRes = transParamsChk(walletType, toWalletAddress, amount);
-        if (paramsChkRes != null) return paramsChkRes;
+        if (paramsChkRes != null) {return paramsChkRes;}
         //格式化转账金额
         BigDecimal transAmt = new BigDecimal(amount);
 
@@ -207,106 +207,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         return ResponseResult.success().setData(new PageInfo<>(transactionList));
     }
 
-    /**
-     * 充值交易
-     *
-     * @param userId    用户id
-     * @param toAddress 钱包address
-     * @param amount
-     * @return
-     */
-    @Transactional(rollbackFor = Exception.class)
-    @Override
-    public ResponseResult invest(String userId, String toAddress, String amount) {
-        BigDecimal investAmt = new BigDecimal(amount);
-        Transaction transaction = new Transaction();
-        transaction.setTransId(BaseUtils.get64UUID());
-        transaction.setToUserId(userId);
-        transaction.setToWalletType(WalletEum.USDT.getCode());
-        transaction.setToWalletAddress(toAddress);
-        transaction.setToAmount(investAmt);
-        transaction.setTransStatus(TransStatusEnum.INIT.getCode());
-        transaction.setTransType(TransTypeEum.IN.getCode()); // 4-充值
-        transaction.setRemark(TransTypeEum.IN.getDesc());
-        transaction.setCreateTime(new Date());
-        transaction.setModifyTime(new Date());
-        transactionMapper.insert(transaction);
-        try {
-            Thread.sleep(60000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        String usdtContractAdd = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
-        BigDecimal balance = walletService.getERC20Balance(toAddress, usdtContractAdd);
-        if (balance != null && balance.doubleValue() >= new Double(amount)) {
-            transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
-            transaction.setModifyTime(new Date());
-            transactionMapper.updateById(transaction);
-            // 缺少 - 更新账户余额
-        } else {
-            confirm(new Date(), toAddress, usdtContractAdd, amount, userId, transaction.getTransId().toString());
-        }
-        return ResponseResult.success();
-    }
-
-    private void confirm(Date time, String fromAddress, String contractAddress, String money, String userId, String transactionId) {
-        //定时第一次15分钟后执行
-        System.out.println(DateUtil.getDate(DATE_FORMAT, 0, time));
-        System.out.println(DateUtil.getDate(DATE_FORMAT, Calendar.MINUTE, 15, time));
-        EntityWrapper <Wallet> walletEntityWrapper = new EntityWrapper <>();
-        walletEntityWrapper.eq(USER_ID, userId);
-        Wallet wallet = walletMapper.selectList(walletEntityWrapper).get(0);
-        Config config = configService.getByKey(SysConfigEum.WALLET_ADDRESS.getCode());
-        ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
-        threadPoolTaskScheduler.initialize();
-        threadPoolTaskScheduler.schedule(new Runnable() {
-            @Override
-            public void run() {
-                Date date = new Date();
-                System.out.println(DateUtil.getDate(DATE_FORMAT, 0, date));
-                BigDecimal balanceValue = walletService.getERC20Balance(fromAddress, contractAddress);
-                if (balanceValue == null || balanceValue.doubleValue() <= new Double(money)) {
-                    //钱未到账继续第二次定时
-                    System.out.println(DateUtil.getDate(DATE_FORMAT, Calendar.HOUR_OF_DAY, 1, date));
-                    ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-                    scheduler.initialize();
-                    scheduler.schedule(new Runnable() {
-                        @Override
-                        public void run() {
-                            Date lastDate = new Date();
-                            System.out.println(DateUtil.getDate(DATE_FORMAT, 0, lastDate));
-                            BigDecimal balance = walletService.getERC20Balance(fromAddress, contractAddress);
-                            if (balance == null || balance.doubleValue() <= new Double(money)) {
-                                //钱未到账继续第三次定时
-                                System.out.println(DateUtil.getDate(DATE_FORMAT, Calendar.HOUR_OF_DAY, 2, lastDate));
-                                ThreadPoolTaskScheduler lastScheduler = new ThreadPoolTaskScheduler();
-                                lastScheduler.initialize();
-                                lastScheduler.schedule(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        BigDecimal lastBalance = walletService.getERC20Balance(fromAddress, contractAddress);
-                                        if (lastBalance == null || lastBalance.doubleValue() <= new Double(money)) {
-                                            //钱未到账，交易失败
-                                            updateTransaction(transactionId, TransStatusEnum.FAILED.getCode());
-                                        } else {
-                                            //钱已到账
-                                            transact(money, wallet.getWalletPath(), wallet.getAddress(), config.getConfigValue(), WalletEum.USDT.getCode(), transactionId, TransStatusEnum.SUCCESS.getCode());
-                                        }
-                                    }
-                                }, DateUtil.getDate(Calendar.HOUR_OF_DAY, 2, lastDate));
-                            } else {
-                                //钱已到账
-                                transact(money, wallet.getWalletPath(), wallet.getAddress(), config.getConfigValue(), WalletEum.USDT.getCode(), transactionId, TransStatusEnum.SUCCESS.getCode());
-                            }
-                        }
-                    }, DateUtil.getDate(Calendar.HOUR_OF_DAY, 1, date));
-                } else {
-                    //钱已到账
-                    transact(money, wallet.getWalletPath(), wallet.getAddress(), config.getConfigValue(), WalletEum.USDT.getCode(), transactionId, TransStatusEnum.SUCCESS.getCode());
-                }
-            }
-        }, DateUtil.getDate(Calendar.MINUTE, 15, time));
-    }
 
     private void transact(String balance, String walletPath, String walletAddress, String toAddress, String walletType, String transactionId, String transactionStatus) {
         try {
@@ -357,20 +257,16 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
      * 系统提现到外部账户
      *
      * @param userId      用户id
-     * @param payPassword 支付密码
      * @param toAddress   提现地址
      * @param amount      提现金额
-     * @param verCode
-     * @param verId
      * @return
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public ResponseResult cashOut(String userId, String walletType, String payPassword, String toAddress, String amount, String verCode, String verId) throws InterruptedException, IOException, ExecutionException, CipherException, BusinessException {
+    public ResponseResult cashOut(String userId, String walletType,String toAddress, String amount) throws InterruptedException, IOException, ExecutionException, CipherException, BusinessException {
         ResponseResult paramsChkRes = transParamsChk(walletType, toAddress, amount);
-        if (paramsChkRes != null) return paramsChkRes;
+        if(paramsChkRes != null) {return paramsChkRes;}
         BigDecimal cashOutAmt = new BigDecimal(amount);
-
         EntityWrapper<Wallet> fromWalletWrapper = new EntityWrapper<>();
         fromWalletWrapper.eq(USER_ID, userId);
         List<Wallet> fromWalletRes = walletMapper.selectList(fromWalletWrapper);
@@ -383,11 +279,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         }
         // 计算转账手续费
         Config feeConfig;
-        if (WalletEum.SK.getCode().equals(walletType)) {
-            feeConfig = configService.getByKey(SysConfigEum.SKC_CASHOUT_FEE.getCode());
-        } else {
-            feeConfig = configService.getByKey(SysConfigEum.USDT_CASHOUT_FEE.getCode());
-        }
+        feeConfig = configService.getByKey(SysConfigEum.USDT_CASHOUT_FEE.getCode());
         String feeValue = feeConfig.getConfigValue();
         BigDecimal fee = cashOutAmt.multiply(new BigDecimal(feeValue));
         if (cashOutAmt.doubleValue() > fromWallet.getBalAvail().doubleValue()) {
@@ -475,16 +367,18 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     @Override
     public ResponseResult queryBuy() {
         List<Exchange> buyList = ExchangeCenter.getInstance().queryBuy();
-        if (buyList == null)
+        if(buyList == null){
             return ResponseResult.fail(NO_COMMISSION);
+        }
         return ResponseResult.success("", buyList);
     }
 
     @Override
     public ResponseResult querySell() {
         List<Exchange> sellList = ExchangeCenter.getInstance().querySell();
-        if (sellList == null)
+        if (sellList == null){
             return ResponseResult.fail(NO_COMMISSION);
+        }
         return ResponseResult.success("", sellList);
     }
 

@@ -65,30 +65,5 @@ public class TransactionController {
 			return ResponseResult.fail("ERR500",e.getMessage());
 		}
 	}
-
-	/**
-	 * 充值
-	 */
-	@PostMapping("/invest")
-	@ResponseBody
-	public ResponseResult invest(@RequestParam String userId,@RequestParam String toAddress,@RequestParam String investMoney) {
-		return transactionService.invest(userId,toAddress,investMoney);
-	}
-
-	/**
-	 * 提现
-	 */
-	@PostMapping("/cashOut")
-	@ResponseBody
-	public ResponseResult cashOut(@RequestParam String userId, @RequestParam String payPassword, @RequestParam String walletType, @RequestParam String toAddress, @RequestParam String cashOutMoney, @RequestParam String verCode, @RequestParam String verId) {
-		try {
-			return transactionService.cashOut(userId, payPassword, walletType, toAddress, cashOutMoney, verCode, verId);
-		} catch (Exception e) {
-			return ResponseResult.fail("-999", e.getMessage());
-		}
-
-	}
-
-
 }
 

@@ -36,25 +36,14 @@ public interface TransactionService extends IService<Transaction> {
     ResponseResult transQueryByPage(Page page, Map<String, Object> params);
 
     /**
-     * 充值
-     *
-     * @param userId      用户id
-     * @param toAddress   钱包address
-     * @param investMoney 充值金额
-     * @return ResponseResult
-     */
-    ResponseResult invest(String userId, String toAddress, String investMoney);
-
-    /**
      * 提现
      *
      * @param userId       用户id
-     * @param payPassword  支付密码
      * @param toAddress    提现地址
      * @param cashOutMoney 提现金额
      * @return ResponseResult
      */
-    ResponseResult cashOut(String userId, String walletType, String payPassword, String toAddress, String cashOutMoney, String verCode, String verId) throws InterruptedException, IOException, ExecutionException, CipherException, BusinessException;
+    ResponseResult cashOut(String userId, String walletType, String toAddress, String cashOutMoney) throws InterruptedException, IOException, ExecutionException, CipherException, BusinessException;
 
     /**
      * 买入

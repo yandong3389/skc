@@ -3,6 +3,8 @@ package com.app.skc.controller;
 
 import com.alibaba.fastjson.JSONObject;
 import com.app.skc.enums.ApiErrEnum;
+import com.app.skc.model.Wallet;
+import com.app.skc.service.TransactionService;
 import com.app.skc.service.WalletService;
 import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
@@ -24,6 +26,8 @@ import java.io.IOException;
 public class WalletController {
 	@Autowired
 	private WalletService walletService;
+	@Autowired
+	private TransactionService transactionService;
 	@Autowired
 	private Web3j web3j;
 
@@ -97,6 +101,26 @@ public class WalletController {
 		} catch (IOException | CipherException io) {
 			return ResponseResult.fail(ApiErrEnum.CREATE_WALLET_FAIL);
 		}
+	}
+
+	/**
+	 *
+	 * @param jsonObject userId用户Id  walletType 钱包类型  toAddress提现到账地址  amount 金额
+	 * @return
+	 */
+	@PostMapping("/cashOut")
+	@ResponseBody
+	public ResponseResult cashOut(@RequestBody JSONObject jsonObject) {
+		try {
+			String userId = jsonObject.getString("userId");
+			String walletType = jsonObject.getString("walletType");
+			String toAddress = jsonObject.getString("toAddress");
+			String amount = jsonObject.getString("amount");
+			return transactionService.cashOut(userId, walletType, toAddress, amount);
+		} catch (Exception e) {
+			return ResponseResult.fail("-999", e.getMessage());
+		}
+
 	}
 
 
