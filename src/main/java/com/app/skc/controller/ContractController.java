@@ -33,17 +33,15 @@ public class ContractController {
 
     /**
      * 购买合约
-     *
-     * @param jsonObject code 合约 code && userId 用户id
+     * @param userId 用户 Id
+     * @param code 合约代码
      * @return
      */
     @PostMapping("/buy")
-    public ResponseResult buy(@RequestBody JSONObject jsonObject) {
-        logger.info("{}开始购买合约,请求参数[{}]", LOG_PREFIX, jsonObject.toJSONString());
-        String userId = jsonObject.getString("userId");
-        String code = jsonObject.getString("code");
-        logger.info("{}购买完成", LOG_PREFIX);
-        return ResponseResult.success();
+    public ResponseResult buy(@RequestParam String userId,@RequestParam String code){
+        logger.info("{}开始购买合约,请求参数[userId={},code={}]",LOG_PREFIX,userId,code);
+        logger.info("{}购买完成",LOG_PREFIX);
+        return  ResponseResult.success();
     }
 
     /**
