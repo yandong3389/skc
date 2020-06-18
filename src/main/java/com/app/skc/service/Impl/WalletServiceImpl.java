@@ -10,6 +10,7 @@ import com.app.skc.model.Wallet;
 import com.app.skc.service.WalletService;
 import com.app.skc.utils.BaseUtils;
 import com.app.skc.utils.viewbean.ResponseResult;
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
 import com.baomidou.mybatisplus.service.impl.ServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -192,6 +193,46 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
             throw new BusinessException("交易失败");
         }
         return transactionHash;
+    }
+
+    /**
+     * 获取用户钱包可用余额
+     *
+     * @param userId
+     * @param walletType
+     * @return
+     */
+    @Override
+    public BigDecimal getAvailBal(String userId, String walletType) {
+        EntityWrapper<Wallet> walletWrapper = new EntityWrapper<>();
+        walletWrapper.eq("user_id", userId);
+        walletWrapper.eq("wallet_type", walletType);
+        List<Wallet> walletList = walletMapper.selectList(walletWrapper);
+        if (walletList.size() > 0) {
+            Wallet wallet = walletList.get(0);
+            return wallet.getBalAvail();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * 获取用户所有钱包地址
+     *
+     * @param userId
+     * @return
+     */
+    @Override
+    public ResponseResult getAddress(String userId) {
+        EntityWrapper<Wallet> walletWrapper = new EntityWrapper<>();
+        walletWrapper.eq("user_id", userId);
+        List<Wallet> walletList = walletMapper.selectList(walletWrapper);
+        if (walletList.size() > 0) {
+            Wallet wallet = walletList.get(0);
+            return ResponseResult.success().setData(wallet.getAddress());
+        } else {
+            return null;
+        }
     }
 
     /**

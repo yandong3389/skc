@@ -17,7 +17,7 @@ import java.util.Map;
 
 /**
  * <p>
- *  前端控制器
+ * 交易前端控制器
  * </p>
  *
  * @author
@@ -36,11 +36,13 @@ public class TransactionController {
 	}
 	
 	/**
-	 * 获取交易记录
-	 * @param map
-	 * @return 返回的结果，0正确ERR500错误
-	 */
-	@ApiOperation(value="交易记录", notes="获取充值，提现，转账，闪兑记录")
+     * 获取交易记录
+     *
+     * @param map trans_type-交易类型等
+     * @param page 分页信息
+     * @return 返回的结果，0正确ERR500错误
+     */
+    @ApiOperation(value="交易记录", notes="获取充值，提现，转账，闪兑记录")
 	@PostMapping("/getTransaction")
 	@ResponseBody
 	public ResponseResult getTransaction(@RequestParam Map<String, Object> map, Page page) {
@@ -48,9 +50,15 @@ public class TransactionController {
 	}
 
 	/**
-	 * 交易转账
-	 */
-	@PostMapping("/transfer")
+     * 内部交易转账
+     *
+     * @param toWalletAddress 贷方钱包地址
+     * @param transferNumber 转账金额
+     * @param userId  借方用户id
+     * @param walletType 钱包类型
+     * @return
+     */
+    @PostMapping("/transfer")
 	@ResponseBody
 	public ResponseResult transfer(
 									 @RequestParam(required = true)String toWalletAddress,

@@ -1,9 +1,7 @@
 package com.app.skc.controller;
 
-
 import com.alibaba.fastjson.JSONObject;
 import com.app.skc.enums.ApiErrEnum;
-import com.app.skc.model.Wallet;
 import com.app.skc.service.TransactionService;
 import com.app.skc.service.WalletService;
 import com.app.skc.utils.viewbean.Page;
@@ -32,24 +30,25 @@ public class WalletController {
 	private Web3j web3j;
 
 	/**
-	 * 获取用户钱包余额信息
+	 * 获取用户钱包可用余额信息
 	 *
 	 * @param userId     用户 ID
 	 * @param walletType 钱包类型
 	 * @return
 	 */
 	@GetMapping("/balance")
-	public ResponseResult query(String userId, String walletType) throws IOException, CipherException {
+	public ResponseResult queryBal(String userId, String walletType) throws IOException, CipherException {
 
 		Credentials credentials = WalletUtils.loadCredentials("", "/Users/Dylan/Desktop/wallet/UTC--2020-06-13T06-41-47.382000000Z--5bc413403be2d5c0503e89b569b42c0b8f690273.json");
 		System.out.println(JSONObject.toJSONString(credentials));
+
 		return null;
 	}
 
 	/**
 	 * 获取用户钱包地址
 	 * @param userId 用户 Id
-	 * @return
+	 * @return 用户钱包地址list
 	 */
 	@GetMapping("/address")
 	public ResponseResult address(String userId){
@@ -81,10 +80,9 @@ public class WalletController {
 	}
 
 
-
 	/**
 	 * 创建钱包
-	 * @param userIdJson 用户 id
+	 * @param userIdJson 用户 id - userId
 	 * @return 返回的结果，0正确ERR500错误
 	 */
 	@PostMapping("/create")
@@ -104,7 +102,7 @@ public class WalletController {
 	}
 
 	/**
-	 *
+	 *	钱包用户提现（对外）
 	 * @param jsonObject userId用户Id  walletType 钱包类型  toAddress提现到账地址  amount 金额
 	 * @return
 	 */

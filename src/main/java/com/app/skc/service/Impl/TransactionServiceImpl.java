@@ -13,7 +13,6 @@ import com.app.skc.service.TransactionService;
 import com.app.skc.service.WalletService;
 import com.app.skc.service.system.ConfigService;
 import com.app.skc.utils.BaseUtils;
-import com.app.skc.utils.date.DateUtil;
 import com.app.skc.utils.jdbc.SqlUtils;
 import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
@@ -23,7 +22,6 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.web3j.crypto.CipherException;
@@ -31,7 +29,6 @@ import org.web3j.protocol.Web3j;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -63,8 +60,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     private ConfigService configService;
     private static String ADDRESS = "address";
     private static String USER_ID = "user_id";
-    private static String WALLTE_TYPE = "wallet_type";
-    private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    private static String WALLET_TYPE = "wallet_type";
 
     /**
      * 系统内部转账
@@ -90,7 +86,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         //获取发起转账钱包
         EntityWrapper<Wallet> fromWalletWrapper = new EntityWrapper<>();
         fromWalletWrapper.eq(USER_ID, userId);
-        fromWalletWrapper.eq(WALLTE_TYPE, walletType);
+        fromWalletWrapper.eq(WALLET_TYPE, walletType);
         List<Wallet> fromWallets = walletMapper.selectList(fromWalletWrapper);
         Wallet fromWallet;
         if (fromWallets.size() > 0) {
@@ -101,7 +97,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         //获取到账钱包
         EntityWrapper<Wallet> toWalletWrapper = new EntityWrapper<>();
         toWalletWrapper.eq(ADDRESS, toWalletAddress);
-        toWalletWrapper.eq(WALLTE_TYPE, walletType);
+        toWalletWrapper.eq(WALLET_TYPE, walletType);
         List<Wallet> toWallets = walletMapper.selectList(toWalletWrapper);
         Wallet toWallet;
         if (toWallets.size() > 0) {
@@ -256,9 +252,10 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     /**
      * 系统提现到外部账户
      *
-     * @param userId      用户id
-     * @param toAddress   提现地址
-     * @param amount      提现金额
+     * @param userId     用户id
+     * @param walletType 钱包类型
+     * @param toAddress  提现地址
+     * @param amount     提现金额
      * @return
      */
     @Transactional(rollbackFor = Exception.class)
@@ -300,13 +297,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     }
 
     private void saveCashOut(String userId, String walletType, String toAddress, BigDecimal cashOutAmt, Wallet fromWallet, BigDecimal fee, boolean needVerify, String transHash) {
-        // 设置转出账户余额
-        BigDecimal fromBalTotal = fromWallet.getBalTotal();
-        BigDecimal fromBalAvail = fromWallet.getBalAvail();
-        fromWallet.setBalTotal(fromBalTotal.subtract(cashOutAmt).subtract(fee));
-        fromWallet.setBalAvail(fromBalAvail.subtract(cashOutAmt).subtract(fee));
-        walletMapper.updateById(fromWallet);
-        // 交易记录保存
         Transaction transaction = new Transaction();
         transaction.setTransId(BaseUtils.get64UUID());
         transaction.setTransType(TransTypeEum.OUT.getCode());
@@ -320,6 +310,13 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         if (needVerify) {
             transaction.setTransStatus(TransStatusEnum.INIT.getCode());
         } else {
+            // 设置转出账户余额
+            BigDecimal fromBalTotal = fromWallet.getBalTotal();
+            BigDecimal fromBalAvail = fromWallet.getBalAvail();
+            fromWallet.setBalTotal(fromBalTotal.subtract(cashOutAmt).subtract(fee));
+            fromWallet.setBalAvail(fromBalAvail.subtract(cashOutAmt).subtract(fee));
+            walletMapper.updateById(fromWallet);
+            // 交易记录保存ss
             transaction.setTransHash(transHash);
             transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
         }
