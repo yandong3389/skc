@@ -12,6 +12,7 @@ import com.app.skc.model.Wallet;
 import com.app.skc.model.system.Config;
 import com.app.skc.service.system.ConfigService;
 import com.app.skc.utils.BaseUtils;
+import com.app.skc.utils.SkcConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,20 +58,18 @@ public class SKWalletScheduler {
     private ConfigService configService;
 
     @Scheduled(cron = "0 */15 * * * ?")
-//@Scheduled(cron = "0 * * * * ?")
     public void invest() throws ExecutionException, InterruptedException {
         logger.info("{}充值定时任务开始...", LOG_PREFIX);
         String contractAddress = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
         Map<String, Object> paramsMap = new HashMap<String, Object>();
         paramsMap.put("wallet_type", WalletEum.USDT.getCode());
         List<Wallet> wallets = walletMapper.selectByMap(paramsMap);
-//        Config config = configService.getByKey("INFURA_ADDRESS");
-        Config walletAddress = configService.getByKey("WALLET_ADDRESS");
-//        String walletPath = configService.getByKey("WALLET_PATH").getConfigValue();
-        String walletPath = "E:\\workspace\\UTC--2020-06-13T06-41-47.382000000Z--5bc413403be2d5c0503e89b569b42c0b8f690273.json";
-        //  Web3j web3j = Web3j.build(new HttpService(config.getConfigValue()));
-        // TODO remove
-        Web3j web3j = Web3j.build(new HttpService("https://mainnet.infura.io/v3/2e130baab5ed43768780e3de46b44257"));
+        Config walletAddress = configService.getByKey(SkcConstants.GENERAL_WALLET_ADDRESS);
+        String generalWalletFile = configService.getByKey(SkcConstants.GENERAL_WALLET_FILE).getConfigValue();
+        String walletPath = SkcConstants.NFS_WALLET_PATH + "/" + generalWalletFile;
+        Config config = configService.getByKey(SkcConstants.INFURA_ADDRESS);
+//        Web3j web3j = Web3j.build(new HttpService("https://mainnet.infura.io/v3/2e130baab5ed43768780e3de46b44257"));
+        Web3j web3j = Web3j.build(new HttpService(config.getConfigValue()));
         Web3ClientVersion web3ClientVersion = web3j.web3ClientVersion().sendAsync().get();
         String clientVersion = web3ClientVersion.getWeb3ClientVersion();
         System.out.println("version=" + clientVersion);
@@ -83,13 +82,11 @@ public class SKWalletScheduler {
                     if (ethBalance.doubleValue() <= 0.001) {
                             logger.info("{}钱包[{}]充值eth余额不足，当前余额[{}].", LOG_PREFIX, wallet.getAddress(), ethBalance.doubleValue());
                         //转手续费
-//                            Credentials credentials = WalletUtils.loadCredentials("", "E:\\workspace\\UTC--2020-06-13T06-41-47.382000000Z--5bc413403be2d5c0503e89b569b42c0b8f690273.json");
                             Credentials credentials = WalletUtils.loadCredentials("", walletPath);
                             Transfer.sendFunds(web3j, credentials, wallet.getAddress(), new BigDecimal(3), Convert.Unit.FINNEY).send();
                             logger.info("{}钱包[{}]充值eth手续费转账成功，待下个批次执行充值.", LOG_PREFIX, wallet.getAddress());
                         } else {
                         //充值
-//                            String transHash = transfer(web3j, wallet.getWalletPath(), wallet.getAddress(), "0x5bc413403be2d5c0503e89b569b42c0b8f690273", contractAddress, balance);
                             String transHash = transfer(web3j, wallet.getWalletPath(), wallet.getAddress(), walletAddress.getConfigValue(), contractAddress, balance);
                             if (StringUtils.isNotBlank(transHash)) {
                                 logger.info("{}钱包[{}]充值成功，充值金额[{}].", LOG_PREFIX, wallet.getAddress(), balance.doubleValue());
