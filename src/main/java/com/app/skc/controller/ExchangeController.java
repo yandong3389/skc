@@ -50,6 +50,9 @@ public class ExchangeController {
 
     /**
      * 获取交易对列表
+     * @param map trans_type-交易类型(必选)；from_user_id-用户id(可选)；to_user_id-用户id(可选)；wallet_type-钱包类型(可选)；trans_status-交易状态(可选)
+     * @param page 分页 pageSize  , pageNum
+     * @return
      */
     @ApiOperation(value = "获取交易对列表", notes = "获取交易对列表")
     @GetMapping("/coin/list")
@@ -66,6 +69,7 @@ public class ExchangeController {
 
     /**
      * 获取交易对买入队列
+     * @return
      */
     @ApiOperation(value = "获取交易对买入队列", notes = "获取交易对买入队列")
     @GetMapping("/queue/buy")
@@ -86,6 +90,9 @@ public class ExchangeController {
 
     /**
      * 主动买入
+     * @param userId 用户 ID
+     * @param price 价格
+     * @param quantity 数量
      */
     @ApiOperation(value = "主动买入", notes = "主动买入")
     @PostMapping("/order/buy")
@@ -103,7 +110,10 @@ public class ExchangeController {
     }
 
     /**
-     * 主动卖出
+     * 主动卖入
+     * @param userId 用户 ID
+     * @param price 价格
+     * @param quantity 数量
      */
     @ApiOperation(value = "主动卖出", notes = "主动卖出")
     @PostMapping("/order/sell")
