@@ -64,7 +64,7 @@ public interface WalletService extends IService<Wallet> {
      * @param walletType
      * @return
      */
-    BigDecimal getAvailBal(String userId, String walletType);
+    ResponseResult getAvailBal(String userId, String walletType);
 
     /**
      * 获取用户钱包地址

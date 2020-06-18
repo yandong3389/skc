@@ -10,8 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.web3j.crypto.CipherException;
-import org.web3j.crypto.Credentials;
-import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 
 import java.io.IOException;
@@ -37,12 +35,8 @@ public class WalletController {
 	 * @return
 	 */
 	@GetMapping("/balance")
-	public ResponseResult queryBal(String userId, String walletType) throws IOException, CipherException {
-
-		Credentials credentials = WalletUtils.loadCredentials("", "/Users/Dylan/Desktop/wallet/UTC--2020-06-13T06-41-47.382000000Z--5bc413403be2d5c0503e89b569b42c0b8f690273.json");
-		System.out.println(JSONObject.toJSONString(credentials));
-
-		return null;
+	public ResponseResult queryBal(String userId, String walletType) {
+		return walletService.getAvailBal(userId, walletType);
 	}
 
 	/**
@@ -51,8 +45,8 @@ public class WalletController {
 	 * @return 用户钱包地址list
 	 */
 	@GetMapping("/address")
-	public ResponseResult address(String userId){
-		return null;
+	public ResponseResult address(String userId) {
+		return walletService.getAddress(userId);
 	}
 
 	/**
@@ -91,7 +85,7 @@ public class WalletController {
 		try{
 			if (StringUtils.isBlank(userId)) {
 				System.out.println(userId);
-				return ResponseResult.fail(ApiErrEnum.NOT_PARAM);
+				return ResponseResult.fail(ApiErrEnum.REQ_PARAM_NOT_NULL);
 			}else {
 				return walletService.createWallet(userId);
 			}

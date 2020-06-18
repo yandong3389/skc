@@ -23,7 +23,7 @@ import java.util.Map;
  * @author
  * @since 2019-06-12
  */
-@Api(value = "TransactionController", description = "交易接口-充值，提现，转账，闪兑及其记录")
+@Api(value = "TransactionController")
 @Controller
 @RequestMapping("/transaction")
 public class TransactionController {

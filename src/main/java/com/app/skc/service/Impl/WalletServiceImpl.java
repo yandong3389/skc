@@ -12,11 +12,13 @@ import com.app.skc.utils.BaseUtils;
 import com.app.skc.utils.viewbean.ResponseResult;
 import com.baomidou.mybatisplus.mapper.EntityWrapper;
 import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.web3j.abi.FunctionEncoder;
 import org.web3j.abi.FunctionReturnDecoder;
 import org.web3j.abi.TypeReference;
@@ -203,16 +205,18 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
      * @return
      */
     @Override
-    public BigDecimal getAvailBal(String userId, String walletType) {
+    public ResponseResult getAvailBal(String userId, String walletType) {
+        if (StringUtils.isBlank(userId) || StringUtils.isBlank(walletType)) {
+            return ResponseResult.fail(ApiErrEnum.REQ_PARAM_NOT_NULL);
+        }
         EntityWrapper<Wallet> walletWrapper = new EntityWrapper<>();
         walletWrapper.eq("user_id", userId);
         walletWrapper.eq("wallet_type", walletType);
         List<Wallet> walletList = walletMapper.selectList(walletWrapper);
-        if (walletList.size() > 0) {
-            Wallet wallet = walletList.get(0);
-            return wallet.getBalAvail();
+        if (!CollectionUtils.isEmpty(walletList) && walletList.get(0) != null) {
+            return ResponseResult.success().setData(walletList.get(0).getBalAvail());
         } else {
-            return null;
+            return ResponseResult.fail(ApiErrEnum.USER_NOT_EXISTED);
         }
     }
 
@@ -224,14 +228,26 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
      */
     @Override
     public ResponseResult getAddress(String userId) {
+        if (StringUtils.isBlank(userId)) {
+            return ResponseResult.fail(ApiErrEnum.REQ_PARAM_NOT_NULL);
+        }
         EntityWrapper<Wallet> walletWrapper = new EntityWrapper<>();
         walletWrapper.eq("user_id", userId);
         List<Wallet> walletList = walletMapper.selectList(walletWrapper);
-        if (walletList.size() > 0) {
-            Wallet wallet = walletList.get(0);
-            return ResponseResult.success().setData(wallet.getAddress());
+        if (!CollectionUtils.isEmpty(walletList)) {
+            List<Wallet> walletAdds = new ArrayList<>();
+            for (Wallet wallet : walletList) {
+                if (wallet != null) {
+                    Wallet resWallet = new Wallet();
+                    resWallet.setUserId(userId);
+                    resWallet.setWalletType(wallet.getWalletType());
+                    resWallet.setAddress(wallet.getAddress());
+                    walletAdds.add(resWallet);
+                }
+            }
+            return ResponseResult.success().setData(walletAdds);
         } else {
-            return null;
+            return ResponseResult.fail(ApiErrEnum.USER_NOT_EXISTED);
         }
     }
 
@@ -288,12 +304,4 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
         return map;
     }
 
-    /*@Override
-    public ResponseResult getBalance(Page page, Map<String,Object> params) {
-        params.remove("pageNum");
-        params.remove("pageSize");
-        PageHelper.startPage(page.getPageNum(),page.getPageSize());
-        List<Wallet> walletList = walletMapper.selectByMap(params);
-        return ResponseResult.success().setData(new PageInfo<>(walletList));
-    }*/
 }
