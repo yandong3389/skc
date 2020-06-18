@@ -110,9 +110,12 @@ public class WalletController {
 	}
 
 	/**
-	 *	钱包用户提现（对外）
+	 * 钱包用户提现<br/>
+	 * 参数列表：userId用户Id  walletType 钱包类型  toAddress提现到账地址  amount 金额
+	 *
 	 * @param jsonObject userId用户Id  walletType 钱包类型  toAddress提现到账地址  amount 金额
 	 * @return
+	 * @Api
 	 */
 	@PostMapping("/cashOut")
 	@ResponseBody
