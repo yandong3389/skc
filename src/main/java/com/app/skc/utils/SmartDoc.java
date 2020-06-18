@@ -12,7 +12,7 @@ public class SmartDoc {
     public static void create() {
         ApiConfig config = new ApiConfig();
         //服务地址
-        config.setServerUrl("http://localhost:8010");
+        config.setServerUrl("http://skgame.top/sk-api/");
         //生成到一个文档
         config.setAllInOne(true);
         //采用严格模式
