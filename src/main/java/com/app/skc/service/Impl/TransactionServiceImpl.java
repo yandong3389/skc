@@ -13,6 +13,7 @@ import com.app.skc.service.TransactionService;
 import com.app.skc.service.WalletService;
 import com.app.skc.service.system.ConfigService;
 import com.app.skc.utils.BaseUtils;
+import com.app.skc.utils.SkcConstants;
 import com.app.skc.utils.jdbc.SqlUtils;
 import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
@@ -59,9 +60,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     private Web3j web3j;
     @Autowired
     private ConfigService configService;
-    private static String ADDRESS = "address";
-    private static String USER_ID = "user_id";
-    private static String WALLET_TYPE = "wallet_type";
 
     /**
      * 系统内部转账
@@ -80,14 +78,16 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     @Override
     public ResponseResult transfer(String toWalletAddress, String amount, String userId, String walletType) throws InterruptedException, ExecutionException, BusinessException, CipherException, IOException {
         ResponseResult paramsChkRes = transParamsChk(walletType, toWalletAddress, amount);
-        if (paramsChkRes != null) {return paramsChkRes;}
+        if (paramsChkRes != null) {
+            return paramsChkRes;
+        }
         //格式化转账金额
         BigDecimal transAmt = new BigDecimal(amount);
 
         //获取发起转账钱包
         EntityWrapper<Wallet> fromWalletWrapper = new EntityWrapper<>();
-        fromWalletWrapper.eq(USER_ID, userId);
-        fromWalletWrapper.eq(WALLET_TYPE, walletType);
+        fromWalletWrapper.eq(SkcConstants.USER_ID, userId);
+        fromWalletWrapper.eq(SkcConstants.WALLET_TYPE, walletType);
         List<Wallet> fromWallets = walletMapper.selectList(fromWalletWrapper);
         Wallet fromWallet;
         if (fromWallets.size() > 0) {
@@ -97,8 +97,8 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         }
         //获取到账钱包
         EntityWrapper<Wallet> toWalletWrapper = new EntityWrapper<>();
-        toWalletWrapper.eq(ADDRESS, toWalletAddress);
-        toWalletWrapper.eq(WALLET_TYPE, walletType);
+        toWalletWrapper.eq(SkcConstants.ADDRESS, toWalletAddress);
+        toWalletWrapper.eq(SkcConstants.WALLET_TYPE, walletType);
         List<Wallet> toWallets = walletMapper.selectList(toWalletWrapper);
         Wallet toWallet;
         if (toWallets.size() > 0) {
@@ -182,28 +182,42 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
      * 根据交易类型分页查询交易记录
      *
      * @param page
-     * @param params
+     * @param params trans_type-交易类型(必选)；from_user_id-用户id(可选)；to_user_id-用户id(可选)；wallet_type-钱包类型(可选)；trans_status-交易状态(可选)
      * @return
      */
     @Override
     public ResponseResult transQueryByPage(Page page, Map<String, Object> params) {
-        PageHelper.startPage(page);
-        params.remove("pageNum");
-        params.remove("pageSize");
-        String transactionType = (String) params.get("trans_type");
-        EntityWrapper<Transaction> entityWrapper = new EntityWrapper<>();
-        params.forEach((k, v) -> {
-            if (!"trans_type".equals(k)) {
-                entityWrapper.eq(k, v);
-            } else {
-                entityWrapper.in("trans_type", transactionType.split(","));
-            }
-        });
-        entityWrapper.orderDesc(SqlUtils.orderBy("create_time"));
+        EntityWrapper<Transaction> entityWrapper = buildTransWrapper(page, params);
         List<Transaction> transactionList = transactionMapper.selectList(entityWrapper);
         return ResponseResult.success().setData(new PageInfo<>(transactionList));
     }
 
+    private EntityWrapper<Transaction> buildTransWrapper(Page page, Map<String, Object> params) {
+        PageHelper.startPage(page);
+        String transType = (String) params.get("trans_type");
+        EntityWrapper<Transaction> entityWrapper = new EntityWrapper<>();
+        if (StringUtils.isNotBlank((String) params.get(SkcConstants.FROM_USER_ID))) {
+            entityWrapper.eq(SkcConstants.FROM_USER_ID, params.get(SkcConstants.FROM_USER_ID));
+        }
+        if (StringUtils.isNotBlank((String) params.get(SkcConstants.TO_USER_ID))) {
+            entityWrapper.eq(SkcConstants.TO_USER_ID, params.get(SkcConstants.TO_USER_ID));
+        }
+        if (StringUtils.isNotBlank((String) params.get(SkcConstants.WALLET_TYPE))) {
+            entityWrapper.eq(SkcConstants.WALLET_TYPE, params.get(SkcConstants.WALLET_TYPE));
+        }
+        if (StringUtils.isNotBlank((String) params.get(SkcConstants.TRANS_STATUS))) {
+            entityWrapper.eq(SkcConstants.TRANS_STATUS, params.get(SkcConstants.TRANS_STATUS));
+        }
+        params.forEach((k, v) -> {
+            if (!"trans_type".equals(k)) {
+                entityWrapper.eq(k, v);
+            } else {
+                entityWrapper.in("trans_type", transType.split(","));
+            }
+        });
+        entityWrapper.orderDesc(SqlUtils.orderBy("create_time desc"));
+        return entityWrapper;
+    }
 
     private void transact(String balance, String walletPath, String walletAddress, String toAddress, String walletType, String transactionId, String transactionStatus) {
         try {
@@ -266,7 +280,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         if(paramsChkRes != null) {return paramsChkRes;}
         BigDecimal cashOutAmt = new BigDecimal(amount);
         EntityWrapper<Wallet> fromWalletWrapper = new EntityWrapper<>();
-        fromWalletWrapper.eq(USER_ID, userId);
+        fromWalletWrapper.eq(SkcConstants.USER_ID, userId);
         List<Wallet> fromWalletRes = walletMapper.selectList(fromWalletWrapper);
         Wallet fromWallet;
         //判断钱包是否存在

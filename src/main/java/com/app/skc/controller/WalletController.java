@@ -2,8 +2,11 @@ package com.app.skc.controller;
 
 import com.alibaba.fastjson.JSONObject;
 import com.app.skc.enums.ApiErrEnum;
+import com.app.skc.enums.TransStatusEnum;
+import com.app.skc.enums.TransTypeEum;
 import com.app.skc.service.TransactionService;
 import com.app.skc.service.WalletService;
+import com.app.skc.utils.SkcConstants;
 import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
 import org.apache.commons.lang3.StringUtils;
@@ -13,6 +16,8 @@ import org.web3j.crypto.CipherException;
 import org.web3j.protocol.Web3j;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 用户钱包
@@ -51,28 +56,37 @@ public class WalletController {
 
 	/**
 	 * 获取用户充值记录
-	 * @param userId 用户 id
-	 * @param wallteType 钱包类型
-	 * @param page 分页信息
+	 *
+	 * @param userId     用户 id
+	 * @param walletType 钱包类型
+	 * @param page       分页信息
 	 * @return
 	 */
 	@GetMapping("/record/in")
-	public ResponseResult in(String userId, String wallteType, Page page){
-		return null;
+	public ResponseResult in(String userId, String walletType, Page page) {
+		Map<String, Object> params = buildTransQueryParam(userId, walletType, TransTypeEum.IN);
+		if (params == null) {
+			return ResponseResult.fail(ApiErrEnum.REQ_PARAM_NOT_NULL);
+		}
+		return transactionService.transQueryByPage(page, params);
 	}
 
 	/**
 	 * 获取用户提现记录
-	 * @param userId 用户 id
-	 * @param wallteType 用户类型
-	 * @param page 分页信息
+	 *
+	 * @param userId     用户 id
+	 * @param walletType 用户类型
+	 * @param page       分页信息
 	 * @return
 	 */
 	@GetMapping("/record/out")
-	public ResponseResult out(String userId,String wallteType,Page page){
-		return null;
+	public ResponseResult out(String userId, String walletType, Page page) {
+		Map<String, Object> params = buildTransQueryParam(userId, walletType, TransTypeEum.OUT);
+		if (params == null) {
+			return ResponseResult.fail(ApiErrEnum.REQ_PARAM_NOT_NULL);
+		}
+		return transactionService.transQueryByPage(page, params);
 	}
-
 
 	/**
 	 * 创建钱包
@@ -115,12 +129,23 @@ public class WalletController {
 
 	}
 
-
-
-
-
-
-
+	private Map<String, Object> buildTransQueryParam(String userId, String walletType, TransTypeEum transType) {
+		if (StringUtils.isBlank(userId) || StringUtils.isBlank(walletType)) {
+			return null;
+		}
+		Map<String, Object> params = new HashMap<>();
+		if (TransTypeEum.IN.getCode().equals(transType.getCode())) {
+			params.put(SkcConstants.TO_USER_ID, userId);
+			params.put(SkcConstants.TO_WALLET_TYPE, walletType);
+			params.put(SkcConstants.TRANS_TYPE, transType.getCode());
+		} else {
+			params.put(SkcConstants.FROM_USER_ID, userId);
+			params.put(SkcConstants.FROM_WALLET_TYPE, walletType);
+			params.put(SkcConstants.TRANS_TYPE, transType.getCode());
+		}
+		params.put(SkcConstants.TRANS_STATUS, TransStatusEnum.SUCCESS.getCode());
+		return params;
+	}
 
 }
 
