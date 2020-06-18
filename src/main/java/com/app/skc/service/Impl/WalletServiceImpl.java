@@ -9,6 +9,7 @@ import com.app.skc.mapper.WalletMapper;
 import com.app.skc.model.Wallet;
 import com.app.skc.service.WalletService;
 import com.app.skc.utils.BaseUtils;
+import com.app.skc.utils.SkcConstants;
 import com.app.skc.utils.viewbean.ResponseResult;
 import com.baomidou.mybatisplus.mapper.EntityWrapper;
 import com.baomidou.mybatisplus.service.impl.ServiceImpl;
@@ -61,7 +62,6 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     @Autowired
     private final WalletMapper walletMapper;
     private static final String LOG_PREFIX = "[钱包服务] - ";
-    private static String walletStoreDir = "E:\\workspace";
     @Autowired
     public WalletServiceImpl(WalletMapper walletMapper){
         this.walletMapper = walletMapper;
@@ -81,16 +81,16 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     @Override
     public ResponseResult createWallet(String userId) throws IOException, CipherException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
         log.info("{}开始为用户:{}创建钱包",LOG_PREFIX,userId);
-        File file = new File(walletStoreDir);
+        File file = new File(SkcConstants.NFS_WALLET_PATH);
         System.out.println(file.exists());
         if(!file.exists()){
             file.mkdirs();
         }
-        String ethwalletName = WalletUtils.generateNewWalletFile("", new File(walletStoreDir), true);
+        String ethwalletName = WalletUtils.generateNewWalletFile("", new File(SkcConstants.NFS_WALLET_PATH), true);
         if (ethwalletName!=null){
             log.info("{}用户:{}钱包生成成功",LOG_PREFIX,userId);
-            String walletFilePath =walletStoreDir+"/"+ethwalletName;
-            Credentials credentials = WalletUtils.loadCredentials("",walletFilePath);
+            String walletFilePath = SkcConstants.NFS_WALLET_PATH + "/" + ethwalletName;
+            Credentials credentials = WalletUtils.loadCredentials("", walletFilePath);
             String address = credentials.getAddress();
             Date date = new Date();
             BigInteger publicKey = credentials.getEcKeyPair().getPublicKey();

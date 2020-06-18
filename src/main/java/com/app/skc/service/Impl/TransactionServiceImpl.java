@@ -113,7 +113,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             config = configService.getByKey(SysConfigEum.USDT_TRANS_FEE.getCode());
         }
         String value = config.getConfigValue();
-        BigDecimal fee = transAmt.multiply(new BigDecimal(value));
+        BigDecimal fee = new BigDecimal(value);
         if (transAmt.doubleValue() > fromWallet.getBalAvail().doubleValue()) {
             return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
         }
@@ -290,9 +290,13 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         }
         // 计算转账手续费
         Config feeConfig;
-        feeConfig = configService.getByKey(SysConfigEum.USDT_CASHOUT_FEE.getCode());
+        if (WalletEum.SK.getCode().equals(walletType)) {
+            feeConfig = configService.getByKey(SysConfigEum.SKC_CASHOUT_FEE.getCode());
+        } else {
+            feeConfig = configService.getByKey(SysConfigEum.USDT_CASHOUT_FEE.getCode());
+        }
         String feeValue = feeConfig.getConfigValue();
-        BigDecimal fee = cashOutAmt.multiply(new BigDecimal(feeValue));
+        BigDecimal fee = new BigDecimal(feeValue);
         if (cashOutAmt.doubleValue() > fromWallet.getBalAvail().doubleValue()) {
             return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
         }
@@ -305,7 +309,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         } else {
             transHash = sysWalletOut(fromWallet.getAddress(), toAddress, walletType, cashOutAmt);
         }
-
         saveCashOut(userId, walletType, toAddress, cashOutAmt, fromWallet, fee, needVerify, transHash);
         return ResponseResult.success();
     }
@@ -330,7 +333,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             fromWallet.setBalTotal(fromBalTotal.subtract(cashOutAmt).subtract(fee));
             fromWallet.setBalAvail(fromBalAvail.subtract(cashOutAmt).subtract(fee));
             walletMapper.updateById(fromWallet);
-            // 交易记录保存ss
+            // 交易记录保存
             transaction.setTransHash(transHash);
             transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
         }
