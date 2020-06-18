@@ -1,7 +1,7 @@
 package com.app.skc.utils.viewbean;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.app.skc.enums.ApiErrEnum;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  * ajax数据response
@@ -56,63 +56,64 @@ public class ResponseResult {
 	}
 
 	/**
-	 *默认成功
+	 * 默认成功
 	 */
-	public static ResponseResult success(){
-		ResponseResult result=new ResponseResult();
+	public static ResponseResult success() {
+		ResponseResult result = new ResponseResult();
 		result.setCode("0");
 		result.setMsg("请求成功");
-		result.setStatus("0");
+		result.setStatus("success");
 		return result;
 	}
 
 	/**
 	 * 自定义返回
+	 *
 	 * @param msg
 	 * @return
 	 */
-	public static ResponseResult success(String msg,Object data){
-		ResponseResult result=new ResponseResult();
+	public static ResponseResult success(String msg, Object data) {
+		ResponseResult result = new ResponseResult();
 		result.setCode("0");
 		result.setMsg(msg);
 		result.setData(data);
-		result.setStatus("0");
+		result.setStatus("success");
 		return result;
 	}
 
 
 	/**
-	 *默认失败
+	 * 默认失败
 	 */
-	public static ResponseResult fail(){
-		ResponseResult result=new ResponseResult();
+	public static ResponseResult fail() {
+		ResponseResult result = new ResponseResult();
 		result.setCode("ERR500");
 		result.setMsg("请求失败");
-		result.setStatus("-1");
+		result.setStatus("fail");
 		return result;
 	}
 
 	/**
-	 *自定义失败
+	 * 自定义失败
 	 */
-	public static ResponseResult fail(String code,String msg){
-		ResponseResult result=new ResponseResult();
+	public static ResponseResult fail(String code, String msg) {
+		ResponseResult result = new ResponseResult();
 		result.setCode(code);
 		result.setMsg(msg);
-		result.setStatus("-1");
+		result.setStatus("fail");
 		return result;
 	}
 
 	/**
-	 *自定义失败
+	 * 自定义失败
 	 */
-	public static ResponseResult fail(ApiErrEnum errEnum){
-		ResponseResult result=new ResponseResult();
+	public static ResponseResult fail(ApiErrEnum errEnum) {
+		ResponseResult result = new ResponseResult();
 		result.setCode(errEnum.getCode());
 		result.setMsg(errEnum.getDesc());
-		result.setStatus("-1");
-		return result;
-	}
+		result.setStatus("fail");
+        return result;
+    }
 
 	public String getStatus() {
 		return status;

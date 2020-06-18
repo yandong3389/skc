@@ -20,7 +20,7 @@ import java.io.IOException;
  * 用户钱包
  */
 @RestController
-@RequestMapping("/skc/api/wallet")
+@RequestMapping("/wallet")
 public class WalletController {
 	@Autowired
 	private WalletService walletService;

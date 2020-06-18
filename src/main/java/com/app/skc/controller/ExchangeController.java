@@ -26,7 +26,7 @@ import java.util.Map;
  */
 @Api(value = "ExchangeController", description = "交易接口-获取最新成交价格，买入，卖出，订单")
 @Controller
-@RequestMapping("/skc/api/exchange")
+@RequestMapping("/exchange")
 public class ExchangeController {
 
     private static final Logger logger = LoggerFactory.getLogger(ExchangeController.class);
@@ -119,5 +119,44 @@ public class ExchangeController {
             return ResponseResult.fail("ERR500", e.getMessage());
         }
     }
+
+    /**
+     * 获取当前委托信息
+     *
+     * @param userId 用户id
+     * @return ResponseResult
+     */
+    @ApiOperation(value = "获取当前委托信息", notes = "获取当前委托信息")
+    @GetMapping("/order/getEntrust")
+    @ResponseBody
+    public ResponseResult getEntrust(@RequestParam String userId) {
+        try {
+            return transactionService.getEntrust(userId);
+        } catch (Exception e) {
+            logger.error("获取当前委托信息", e);
+            return ResponseResult.fail("ERR500", e.getMessage());
+        }
+    }
+
+    /**
+     * 取消委托
+     *
+     * @param userId       用户 id
+     * @param entrustOrder 委托订单号
+     * @return ResponseResult
+     */
+    @ApiOperation(value = "取消委托", notes = "取消委托")
+    @PostMapping("/order/cancelEntrust")
+    @ResponseBody
+    public ResponseResult cancelEntrust(@RequestParam String userId, @RequestParam String entrustOrder) {
+        try {
+            return transactionService.cancelEntrust(userId, entrustOrder);
+        } catch (Exception e) {
+            logger.error("取消委托", e);
+            return ResponseResult.fail("ERR500", e.getMessage());
+        }
+    }
+
+
 }
 

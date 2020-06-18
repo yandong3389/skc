@@ -29,6 +29,7 @@ import org.web3j.protocol.Web3j;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -386,5 +387,36 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             return ResponseResult.fail(NO_DEAL_PRICE);
         }
         return ResponseResult.success("", price);
+    }
+
+    @Override
+    public ResponseResult getEntrust(String userId) {
+        List<Exchange> exchanges = new ArrayList<>();
+        Exchange exchange = new Exchange();
+        exchange.setUserId(userId);
+        exchange.setEntrustOrder(BaseUtils.get64UUID());
+        exchange.setPrice(new BigDecimal("11.11"));
+        exchange.setQuantity(100);
+        exchange.setType(TransTypeEum.BUY.getCode());
+        exchanges.add(exchange);
+        Exchange sellExchange = new Exchange();
+        sellExchange.setUserId(userId);
+        sellExchange.setEntrustOrder(BaseUtils.get64UUID());
+        sellExchange.setPrice(new BigDecimal("10.01"));
+        sellExchange.setQuantity(100);
+        sellExchange.setType(TransTypeEum.SELL.getCode());
+        exchanges.add(sellExchange);
+        return ResponseResult.success("", exchanges);
+    }
+
+    @Override
+    public ResponseResult cancelEntrust(String userId, String entrustOrder) {
+        Exchange exchange = new Exchange();
+        exchange.setUserId(userId);
+        exchange.setEntrustOrder(entrustOrder);
+        exchange.setPrice(new BigDecimal("10.01"));
+        exchange.setQuantity(100);
+        exchange.setType(TransTypeEum.SELL.getCode());
+        return ResponseResult.success("取消成功", exchange);
     }
 }
