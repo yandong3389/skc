@@ -94,11 +94,10 @@ public class ExchangeCenter {
 
     public List<Transaction> buy(String buyUserId, BigDecimal buyPrice, Integer buyQuantity) {
         List<Transaction> transactionList = new ArrayList<>();
-        Exchange exchange = new Exchange(buyUserId, buyPrice, buyQuantity);
+        Exchange exchange = new Exchange(buyUserId, TransTypeEum.BUY, buyPrice, buyQuantity);
         Transaction transaction = buyFirst(exchange);
         while (transaction != null) {
             transactionList.add(transaction);
-            transaction.insert();
             transaction = buyFirst(exchange);
         }
         return transactionList;
@@ -133,11 +132,10 @@ public class ExchangeCenter {
 
     public List<Transaction> sell(String buyUserId, BigDecimal buyPrice, Integer sellQuantity) {
         List<Transaction> transactionList = new ArrayList<>();
-        Exchange exchange = new Exchange(buyUserId, buyPrice, sellQuantity);
+        Exchange exchange = new Exchange(buyUserId, TransTypeEum.SELL, buyPrice, sellQuantity);
         Transaction transaction = sellFirst(exchange);
         while (transaction != null) {
             transactionList.add(transaction);
-            transaction.insert();
             transaction = sellFirst(exchange);
         }
         return transactionList;
