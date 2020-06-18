@@ -18,7 +18,7 @@ public class SmartDoc {
         //采用严格模式
         config.isStrict();
         //文档输出路径
-        config.setOutPath("/Users/Dylan/项目/api");
+        config.setOutPath("C:\\Users\\jeff\\IdeaProjects\\项目\\api");
         ApiDocBuilder.buildApiDoc(config);
         //将生成的文档输出到/Users/dujf/Downloads/md目录下，严格模式下api-doc会检测Controller的接口注释
     }

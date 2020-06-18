@@ -49,8 +49,23 @@ public class ExchangeController {
     }
 
     /**
+     * 获取最新成交价格
+     * @return date-日期 ; line-每分钟成交价 ,
+     * 数组长度2440, 每分钟对应一个下标
+     * 00:00对应line[0]
+     * 23:59对应line[2339]
+     *
+     */
+    @ApiOperation(value = "获取K线数据", notes = "获取K线数据")
+    @GetMapping("/kline")
+    @ResponseBody
+    public ResponseResult kline() {
+        return transactionService.kline();
+    }
+
+    /**
      * 获取交易对列表
-     * @param map trans_type-交易类型(必选)；from_user_id-用户id(可选)；to_user_id-用户id(可选)；wallet_type-钱包类型(可选)；trans_status-交易状态(可选)
+     * @param map trans_type-交易类型(必选)；from_user_id-用户id(可选)；to_user_id-用户id(可选)；trans_status-交易状态(可选)
      * @param page 分页 pageSize  , pageNum
      * @return
      */

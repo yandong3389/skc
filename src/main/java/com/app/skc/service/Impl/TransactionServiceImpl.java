@@ -2,6 +2,7 @@ package com.app.skc.service.Impl;
 
 import com.app.skc.common.Exchange;
 import com.app.skc.common.ExchangeCenter;
+import com.app.skc.common.Kline;
 import com.app.skc.enums.*;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.TransactionMapper;
@@ -22,6 +23,7 @@ import com.baomidou.mybatisplus.service.impl.ServiceImpl;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,10 +32,7 @@ import org.web3j.protocol.Web3j;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 import static com.app.skc.enums.ApiErrEnum.NO_COMMISSION;
@@ -421,6 +420,17 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         sellExchange.setType(TransTypeEum.SELL.getCode());
         exchanges.add(sellExchange);
         return ResponseResult.success("", exchanges);
+    }
+
+    @Override
+    public ResponseResult kline() {
+        String[] line = new String[2440];
+        for (int i = 0; i <line.length; i++) {
+            double random = Math.random()*(10) + 1;
+            line[i] = String.format("%.2f",random);
+        }
+        Kline kline = new Kline(DateUtils.truncate(new Date(), Calendar.DATE), line);
+        return ResponseResult.success("成功",kline);
     }
 
     @Override

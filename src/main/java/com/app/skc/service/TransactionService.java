@@ -84,6 +84,11 @@ public interface TransactionService extends IService<Transaction> {
     ResponseResult price();
 
     /**
+     * 获取K线数据
+     */
+    ResponseResult kline();
+
+    /**
      * 取消委托
      */
     ResponseResult cancelEntrust(String userId, String entrustOrder);
