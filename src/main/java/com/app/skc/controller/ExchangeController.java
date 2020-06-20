@@ -3,7 +3,6 @@ package com.app.skc.controller;
 
 import com.app.skc.enums.TransTypeEum;
 import com.app.skc.service.TransactionService;
-import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -65,21 +64,19 @@ public class ExchangeController {
 
     /**
      * 获取交易对列表
-     * @param map trans_type-交易类型(必选)；from_user_id-用户id(可选)；to_user_id-用户id(可选)；trans_status-交易状态(可选)
-     * @param page 分页 pageSize  , pageNum
+     *
+     * @param map trans_type-交易类型(必选)；from_user_id-用户id(可选)；to_user_id-用户id(可选)；trans_status-交易状态(可选),pageSize  , pageNum
      * @return
      */
     @ApiOperation(value = "获取交易对列表", notes = "获取交易对列表")
     @GetMapping("/coin/list")
     @ResponseBody
-    public ResponseResult coinList(@RequestParam Map<String, Object> map, Page page) {
-        if (page == null)
-            page = new Page();
+    public ResponseResult coinList(@RequestParam Map<String, Object> map) {
         if (map == null) {
             map = new HashMap<>();
         }
         map.putIfAbsent("trans_type", String.join(",", TransTypeEum.BUY.getCode(), TransTypeEum.SELL.getCode()));
-        return transactionService.transQueryByPage(page, map);
+        return transactionService.transQueryByPage(map);
     }
 
     /**

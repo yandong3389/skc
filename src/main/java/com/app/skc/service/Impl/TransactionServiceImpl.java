@@ -223,7 +223,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
                 entityWrapper.in(SkcConstants.TRANS_TYPE, transType.split(SkcConstants.COMMA_EN));
             }
         });
-        entityWrapper.orderDesc(SqlUtils.orderBy("create_time desc"));
+        entityWrapper.orderDesc(SqlUtils.orderBy("create_time"));
         return entityWrapper;
     }
 
