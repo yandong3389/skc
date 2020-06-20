@@ -24,6 +24,8 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,7 +50,7 @@ import static com.app.skc.enums.ApiErrEnum.NO_DEAL_PRICE;
  */
 @Service("transactionService")
 public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Transaction> implements TransactionService {
-
+    private static final Logger logger = LoggerFactory.getLogger(TransactionServiceImpl.class);
     @Autowired
     private WalletMapper walletMapper;
     @Autowired
@@ -261,11 +263,13 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         if (WalletEum.SK.getCode().equals(walletType)) {
             BigDecimal mdcBalance = walletService.getERC20Balance(walletAddress.getConfigValue(), InfuraInfo.SKC_CONTRACT_ADDRESS.getDesc());
             if (mdcBalance.doubleValue() < trans.doubleValue()) {
+                logger.info("提现交易失败，SKC不足，当前SKC余额[{}]，提现金额[{}]", mdcBalance.doubleValue(), trans.doubleValue());
                 throw new BusinessException("交易失败,SKC不足");
             }
         } else if (WalletEum.USDT.getCode().equals(walletType)) {
             BigDecimal usdtBalance = walletService.getERC20Balance(walletAddress.getConfigValue(), InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc());
             if (usdtBalance.doubleValue() < trans.doubleValue()) {
+                logger.info("提现交易失败，USDT不足，当前USDT余额[{}]，提现金额[{}]", usdtBalance.doubleValue(), trans.doubleValue());
                 throw new BusinessException("交易失败,USDT不足");
             }
         }
@@ -298,6 +302,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         } else {
             return ResponseResult.fail(ApiErrEnum.WALLET_NOT_MAINTAINED);
         }
+        logger.info("提现转出钱包查询成功，钱包地址为[{}]", fromWallet.getAddress());
         // 计算转账手续费
         Config feeConfig;
         if (WalletEum.SK.getCode().equals(walletType)) {
@@ -306,8 +311,10 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             feeConfig = configService.getByKey(SysConfigEum.USDT_CASHOUT_FEE.getCode());
         }
         String feeValue = feeConfig.getConfigValue();
+        logger.info("提现手续费查询成功，值为[{}]", feeValue);
         BigDecimal fee = new BigDecimal(feeValue);
         if ((cashOutAmt.doubleValue() + fee.doubleValue()) > fromWallet.getBalAvail().doubleValue()) {
+            logger.info("提现失败，余额不足，转出金额为[{}], 手续费为[{}]，当前钱包可用余额为[{}]", cashOutAmt.doubleValue(), feeValue, fromWallet.getBalAvail().doubleValue());
             return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
         }
 
@@ -315,8 +322,10 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         boolean needVerify = false;
         String transHash = "";
         if (needApproval != null && "Y".equals(needApproval.getConfigValue())) {
+            logger.info("提现需要审批，保存待审核提现记录");
             needVerify = true;
         } else {
+            logger.info("提现无需审批，开始提现流程");
             transHash = sysWalletOut(fromWallet.getAddress(), toAddress, walletType, cashOutAmt);
         }
         saveCashOut(userId, walletType, toAddress, cashOutAmt, fromWallet, fee, needVerify, transHash);
@@ -343,6 +352,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             fromWallet.setBalTotal(fromBalTotal.subtract(cashOutAmt).subtract(fee));
             fromWallet.setBalAvail(fromBalAvail.subtract(cashOutAmt).subtract(fee));
             walletMapper.updateById(fromWallet);
+            logger.info("提现交易 - 钱包相关余额更新成功。");
             // 交易记录保存
             transaction.setTransHash(transHash);
             transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
@@ -350,6 +360,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         transaction.setCreateTime(new Date());
         transaction.setModifyTime(new Date());
         transactionMapper.insert(transaction);
+        logger.info("提现交易 - 交易记录保存成功");
     }
 
     private ResponseResult transParamsChk(String walletType, String toAddress, String amount) {

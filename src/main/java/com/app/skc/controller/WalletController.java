@@ -10,6 +10,8 @@ import com.app.skc.utils.SkcConstants;
 import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.web3j.crypto.CipherException;
@@ -25,6 +27,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/wallet")
 public class WalletController {
+	private static final Logger logger = LoggerFactory.getLogger(WalletController.class);
 	@Autowired
 	private WalletService walletService;
 	@Autowired
@@ -120,6 +123,7 @@ public class WalletController {
 	@PostMapping("/cashOut")
 	@ResponseBody
 	public ResponseResult cashOut(@RequestBody JSONObject jsonObject) {
+		logger.info("提现交易开始，请求参数{},", jsonObject.toJSONString());
 		try {
 			String userId = jsonObject.getString("userId");
 			String walletType = jsonObject.getString("walletType");
@@ -127,6 +131,7 @@ public class WalletController {
 			String amount = jsonObject.getString("amount");
 			return transactionService.cashOut(userId, walletType, toAddress, amount);
 		} catch (Exception e) {
+			logger.error("提现交易异常", e);
 			return ResponseResult.fail("-999", e.getMessage());
 		}
 
