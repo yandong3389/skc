@@ -12,8 +12,6 @@ import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.http.HttpService;
 
 @MapperScan({ "com.app.skc.mapper" })
 @EnableTransactionManagement
@@ -33,14 +31,4 @@ public class SkcApplication extends SpringBootServletInitializer {
     {
         return application.sources(SkcApplication.class);
     }
-
-    /**
-     * 设置 web3j
-     *//*
-    @Value("${web3j.client-address}")
-    private String web3jAddress;
-    public Web3j web3j(Web3j web3j){
-	    web3j = Web3j.build(new HttpService(web3jAddress));
-	    return web3j;
-    }*/
 }
