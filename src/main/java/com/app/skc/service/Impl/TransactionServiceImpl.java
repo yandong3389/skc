@@ -289,6 +289,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         BigDecimal cashOutAmt = new BigDecimal(amount);
         EntityWrapper<Wallet> fromWalletWrapper = new EntityWrapper<>();
         fromWalletWrapper.eq(SkcConstants.USER_ID, userId);
+        fromWalletWrapper.eq(SkcConstants.WALLET_TYPE, walletType);
         List<Wallet> fromWalletRes = walletMapper.selectList(fromWalletWrapper);
         Wallet fromWallet;
         //判断钱包是否存在
@@ -306,7 +307,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         }
         String feeValue = feeConfig.getConfigValue();
         BigDecimal fee = new BigDecimal(feeValue);
-        if (cashOutAmt.doubleValue() > fromWallet.getBalAvail().doubleValue()) {
+        if ((cashOutAmt.doubleValue() + fee.doubleValue()) > fromWallet.getBalAvail().doubleValue()) {
             return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
         }
 
