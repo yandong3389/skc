@@ -65,7 +65,6 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     @Autowired
     private final WalletMapper walletMapper;
     private static final String LOG_PREFIX = "[钱包服务] - ";
-
     @Autowired
     public WalletServiceImpl(WalletMapper walletMapper) {
         this.walletMapper = walletMapper;
@@ -74,7 +73,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     @Autowired
     private ConfigService configService;
     @Autowired
-    private Web3j web3j;
+    private static Web3j web3j;
 
     /**
      * 创建钱包
@@ -170,7 +169,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     @Override
     public String withdraw(String fromAddress, String toAddress, BigDecimal amount,String fromPath) throws BusinessException, ExecutionException, InterruptedException, IOException, CipherException {
         String transactionHash;
-        BigDecimal eth = BigDecimal.ZERO;
+        BigDecimal eth = new BigDecimal(InfuraInfo.USDT_ETH.getDesc());
         //判断转出地址
         if (!toAddress.startsWith("0x") || toAddress.length() != 42) {
             throw new BusinessException(null);
@@ -201,6 +200,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
 
         EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();
         transactionHash = ethSendTransaction.getTransactionHash();
+
         if (StringUtils.isBlank(transactionHash)) {
             throw new BusinessException("交易失败");
         }
@@ -304,6 +304,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
 
     /**
      * 获取钱包创建成功的返回值
+     *
      * @param wallet
      * @return
      */
@@ -315,8 +316,10 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     }
 
     private void initWeb3j() {
-        Config config = configService.getByKey(SkcConstants.INFURA_ADDRESS);
-        web3j = Web3j.build(new HttpService(config.getConfigValue()));
+        if (web3j == null) {
+            Config config = configService.getByKey(SkcConstants.INFURA_ADDRESS);
+            web3j = Web3j.build(new HttpService(config.getConfigValue()));
+        }
     }
 
 }

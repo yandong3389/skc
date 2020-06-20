@@ -174,7 +174,6 @@ public class SKWalletScheduler {
         String transactionHash;
 
         BigDecimal eth = new BigDecimal(InfuraInfo.USDT_ETH.getDesc());
-        BigDecimal fee = new BigDecimal(0);
         EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(
                 fromAddress, DefaultBlockParameterName.LATEST).sendAsync().get();
         BigInteger nonce = ethGetTransactionCount.getTransactionCount();
@@ -189,18 +188,15 @@ public class SKWalletScheduler {
         BigInteger gasPrice = Convert.toWei(new BigDecimal(InfuraInfo.GAS_PRICE.getDesc()), Convert.Unit.GWEI).toBigInteger();
 
         RawTransaction rawTransaction = RawTransaction.createTransaction(nonce, gasPrice,
-                    new BigInteger(InfuraInfo.GAS_SIZE.getDesc()),contractAddress, encodedFunction);
-            byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, credentials);
-            String hexValue = Numeric.toHexString(signedMessage);
+                new BigInteger(InfuraInfo.GAS_SIZE.getDesc()), contractAddress, encodedFunction);
+        byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, credentials);
+        String hexValue = Numeric.toHexString(signedMessage);
 
-            EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();
-            transactionHash = ethSendTransaction.getTransactionHash();
+        EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();
+        transactionHash = ethSendTransaction.getTransactionHash();
         return transactionHash;
-        }
-
-
-
     }
+}
 
 
 
