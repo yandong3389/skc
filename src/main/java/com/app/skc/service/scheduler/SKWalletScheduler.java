@@ -13,10 +13,12 @@ import com.app.skc.model.system.Config;
 import com.app.skc.service.system.ConfigService;
 import com.app.skc.utils.BaseUtils;
 import com.app.skc.utils.SkcConstants;
+import com.app.skc.utils.WebUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -50,16 +52,25 @@ public class SKWalletScheduler {
     private static final Logger logger = LoggerFactory.getLogger(SKWalletScheduler.class);
     private static final String LOG_PREFIX = "[交易充值] - ";
 
+
     @Autowired
     private TransactionMapper transactionMapper;
     @Autowired
     private WalletMapper walletMapper;
     @Autowired
     private ConfigService configService;
+    @Value("${recharge.local-address}")
+    private String localAddress;
 
     @Scheduled(cron = "0 */15 * * * ?")
     public void invest() throws ExecutionException, InterruptedException {
-        logger.info("{}充值定时任务开始...", LOG_PREFIX);
+        logger.info("{}开始监听充值交易...", LOG_PREFIX);
+        String address = WebUtils.getHostAddress();
+        logger.info("{}获取本机地址:[{}]",LOG_PREFIX,address);
+        if (!address.equals(localAddress)){
+            logger.info("{}监听充值交易结束,监听客户端地址错误");
+            return;
+        }
         String contractAddress = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
         Map<String, Object> paramsMap = new HashMap<String, Object>();
         paramsMap.put("wallet_type", WalletEum.USDT.getCode());
@@ -120,7 +131,7 @@ public class SKWalletScheduler {
                     logger.error("{}钱包[{}]充值交易失败.", LOG_PREFIX, wallet.getAddress(), e);
                 }
             }
-        logger.info("{}充值定时任务全部结束.", LOG_PREFIX);
+        logger.info("{}监听充值交易完成.", LOG_PREFIX);
         }
 
         private BigDecimal getEthBalance(Web3j web3j,String address) throws IOException {
