@@ -193,11 +193,15 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
 
     private EntityWrapper<Transaction> buildTransWrapper(Map<String, Object> params) {
         Page page = new Page();
-        page.setPageNum((Integer) params.get(SkcConstants.PAGE_NUM));
-        page.setPageSize((Integer) params.get(SkcConstants.PAGE_SIZE));
+        if (StringUtils.isNotBlank((String) params.get(SkcConstants.PAGE_NUM))) {
+            page.setPageNum((Integer) params.get(SkcConstants.PAGE_NUM));
+            params.remove(SkcConstants.PAGE_NUM);
+        }
+        if (StringUtils.isNotBlank((String) params.get(SkcConstants.PAGE_SIZE))) {
+            page.setPageSize((Integer) params.get(SkcConstants.PAGE_SIZE));
+            params.remove(SkcConstants.PAGE_SIZE);
+        }
         PageHelper.startPage(page);
-        params.remove(SkcConstants.PAGE_NUM);
-        params.remove(SkcConstants.PAGE_SIZE);
         EntityWrapper<Transaction> entityWrapper = new EntityWrapper<>();
         if (StringUtils.isNotBlank((String) params.get(SkcConstants.FROM_USER_ID))) {
             entityWrapper.eq(SkcConstants.FROM_USER_ID, params.get(SkcConstants.FROM_USER_ID));
