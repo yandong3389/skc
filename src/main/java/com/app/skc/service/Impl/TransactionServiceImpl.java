@@ -229,14 +229,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         return entityWrapper;
     }
 
-    private void transact(String balance, String walletPath, String walletAddress, String toAddress, String walletType, String transactionId, String transactionStatus) {
-        try {
-            transfer(balance, walletPath, walletAddress, toAddress);
-            updateTransaction(transactionId, transactionStatus);
-        } catch (IOException | CipherException | ExecutionException | InterruptedException | BusinessException e) {
-            e.printStackTrace();
-        }
-    }
 
     private void updateTransaction(String transactionId, String transactionStatus) {
         Transaction transaction = transactionMapper.selectById(transactionId);
@@ -340,7 +332,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         transaction.setFromWalletType(walletType);
         transaction.setFromWalletAddress(fromWallet.getAddress());
         transaction.setFromAmount(cashOutAmt);
-        transaction.setToAmount(cashOutAmt.subtract(transaction.getFeeAmount()));
+        transaction.setToAmount(cashOutAmt);
         transaction.setToWalletAddress(toAddress);
         transaction.setFeeAmount(fee);
         if (needVerify) {
@@ -367,7 +359,9 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         if (!toAddress.startsWith("0x") || toAddress.length() != 42) {
             return ResponseResult.fail(ApiErrEnum.ADDRESS_WALLET_FAIL);
         }
-        if (!StringUtils.isNumeric(amount)) {
+        try {
+            BigDecimal bigDecimal = new BigDecimal(amount);
+        } catch (Exception e) {
             return ResponseResult.fail(ApiErrEnum.TRANS_AMOUNT_INVALID);
         }
         if (WalletEum.getByCode(walletType) == null) {

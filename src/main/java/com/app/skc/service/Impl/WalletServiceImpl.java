@@ -33,7 +33,10 @@ import org.web3j.crypto.*;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.request.Transaction;
-import org.web3j.protocol.core.methods.response.*;
+import org.web3j.protocol.core.methods.response.EthCall;
+import org.web3j.protocol.core.methods.response.EthGetBalance;
+import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
+import org.web3j.protocol.core.methods.response.EthSendTransaction;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.utils.Convert;
 import org.web3j.utils.Numeric;
@@ -168,22 +171,20 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     @Transactional(rollbackFor = Exception.class)
     @Override
     public String withdraw(String fromAddress, String toAddress, BigDecimal amount,String fromPath) throws BusinessException, ExecutionException, InterruptedException, IOException, CipherException {
-        String transactionHash;
-        BigDecimal eth = new BigDecimal(InfuraInfo.USDT_ETH.getDesc());
         //判断转出地址
         if (!toAddress.startsWith("0x") || toAddress.length() != 42) {
             throw new BusinessException(null);
         }
+        String transactionHash;
         Credentials credentials = WalletUtils.loadCredentials("", fromPath);
         initWeb3j();
-        Web3ClientVersion web3ClientVersion = web3j.web3ClientVersion().sendAsync().get();
-        String clientVersion = web3ClientVersion.getWeb3ClientVersion();
-        System.out.println("version=" + clientVersion);
+        BigDecimal eth = new BigDecimal(InfuraInfo.USDT_ETH.getDesc());
+        String sysAddress = configService.getByKey(SkcConstants.SYS_WALLET_ADDRESS).getConfigValue();
         EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(
-                fromAddress, DefaultBlockParameterName.LATEST).sendAsync().get();
+                sysAddress, DefaultBlockParameterName.LATEST).sendAsync().get();
         BigInteger nonce = ethGetTransactionCount.getTransactionCount();
+        log.info("{} 系统钱包交易笔数:[{}]", LOG_PREFIX, nonce);
         Address transferAddress = new Address(toAddress);
-        String contractAddress = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
         Uint256 value = new Uint256(new BigInteger(amount.multiply(eth).stripTrailingZeros().toPlainString()));
         List <Type> parametersList = new ArrayList <>();
         parametersList.add(transferAddress);
@@ -194,15 +195,14 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
         BigInteger gasPrice = Convert.toWei(new BigDecimal(InfuraInfo.GAS_PRICE.getDesc()), Convert.Unit.GWEI).toBigInteger();
 
         RawTransaction rawTransaction = RawTransaction.createTransaction(nonce, gasPrice,
-                new BigInteger(InfuraInfo.GAS_SIZE.getDesc()), contractAddress, encodedFunction);
+                new BigInteger(InfuraInfo.GAS_SIZE.getDesc()), InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc(), encodedFunction);
         byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, credentials);
         String hexValue = Numeric.toHexString(signedMessage);
-
         EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();
         transactionHash = ethSendTransaction.getTransactionHash();
-
         if (StringUtils.isBlank(transactionHash)) {
-            throw new BusinessException("交易失败");
+            log.error("{}提现失败:{[]}", ethSendTransaction.getError().getMessage());
+            throw new BusinessException("提现失败");
         }
         return transactionHash;
     }
