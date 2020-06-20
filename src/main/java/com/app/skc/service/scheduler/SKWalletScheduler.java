@@ -66,8 +66,8 @@ public class SKWalletScheduler {
     public void invest() throws ExecutionException, InterruptedException {
         logger.info("{}开始监听充值交易...", LOG_PREFIX);
         String address = WebUtils.getHostAddress();
-        logger.info("{}获取本机地址:[{}]",LOG_PREFIX,address);
-        if (!address.equals(localAddress)){
+        logger.info("{}获取本机地址:[{}]", LOG_PREFIX, address);
+        if (!address.equals(localAddress)) {
             logger.info("{}监听充值交易结束,监听客户端地址错误");
             return;
         }
@@ -75,9 +75,8 @@ public class SKWalletScheduler {
         Map<String, Object> paramsMap = new HashMap<String, Object>();
         paramsMap.put("wallet_type", WalletEum.USDT.getCode());
         List<Wallet> wallets = walletMapper.selectByMap(paramsMap);
-        Config walletAddress = configService.getByKey(SkcConstants.GENERAL_WALLET_ADDRESS);
-        String generalWalletFile = configService.getByKey(SkcConstants.GENERAL_WALLET_FILE).getConfigValue();
-        String walletPath = SkcConstants.NFS_WALLET_PATH + "/" + generalWalletFile;
+        Config walletAddress = configService.getByKey(SkcConstants.SYS_WALLET_ADDRESS);
+        String sysWalletPath = configService.getByKey(SkcConstants.SYS_WALLET_FILE).getConfigValue();
         Config config = configService.getByKey(SkcConstants.INFURA_ADDRESS);
 //        Web3j web3j = Web3j.build(new HttpService("https://mainnet.infura.io/v3/2e130baab5ed43768780e3de46b44257"));
         Web3j web3j = Web3j.build(new HttpService(config.getConfigValue()));
@@ -93,7 +92,7 @@ public class SKWalletScheduler {
                     if (ethBalance.doubleValue() <= 0.001) {
                             logger.info("{}钱包[{}]充值eth余额不足，当前余额[{}].", LOG_PREFIX, wallet.getAddress(), ethBalance.doubleValue());
                         //转手续费
-                            Credentials credentials = WalletUtils.loadCredentials("", walletPath);
+                        Credentials credentials = WalletUtils.loadCredentials("", sysWalletPath);
                             Transfer.sendFunds(web3j, credentials, wallet.getAddress(), new BigDecimal(3), Convert.Unit.FINNEY).send();
                             logger.info("{}钱包[{}]充值eth手续费转账成功，待下个批次执行充值.", LOG_PREFIX, wallet.getAddress());
                         } else {

@@ -14,9 +14,9 @@ public class SkcConstants {
     public static final String TO_WALLET_TYPE = "to_wallet_type";
     public static final String TRANS_TYPE = "trans_type";
     public static final String TRANS_STATUS = "trans_status";
-    public static final String NFS_WALLET_PATH = "/data/share/user/";
+    public static final String NFS_WALLET_PATH = "/data/share/user";
     public static final String INFURA_ADDRESS = "INFURA_ADDRESS";
-    public static final String GENERAL_WALLET_FILE = "GENERAL_WALLET_FILE";
-    public static final String GENERAL_WALLET_ADDRESS = "GENERAL_WALLET_ADDRESS";
+    public static final String SYS_WALLET_FILE = "SYS_WALLET_FILE";
+    public static final String SYS_WALLET_ADDRESS = "SYS_WALLET_ADDRESS";
 
 }

@@ -9,8 +9,7 @@ public enum SysConfigEum {
     SKC_CASHOUT_FEE("SKC_CASHOUT_FEE", "SKC提现交易手续费"),
     USDT_CASHOUT_FEE("USDT_CASHOUT_FEE", "USDT提现交易手续费"),
     NEED_CASHOUT_VERIFY("NEED_CASHOUT_VERIFY", "提现交易是否需要审核"),
-    WALLET_ADDRESS("WALLET_ADDRESS", "公司钱包地址"),
-    WALLET_PATH("WALLET_PATH", "钱包物理地址");
+    ;
 
 
     /**

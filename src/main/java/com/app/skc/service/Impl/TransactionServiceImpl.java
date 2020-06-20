@@ -194,11 +194,11 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     private EntityWrapper<Transaction> buildTransWrapper(Map<String, Object> params) {
         Page page = new Page();
         if (StringUtils.isNotBlank((String) params.get(SkcConstants.PAGE_NUM))) {
-            page.setPageNum((Integer) params.get(SkcConstants.PAGE_NUM));
+            page.setPageNum(Integer.valueOf((String) params.get(SkcConstants.PAGE_NUM)));
             params.remove(SkcConstants.PAGE_NUM);
         }
         if (StringUtils.isNotBlank((String) params.get(SkcConstants.PAGE_SIZE))) {
-            page.setPageSize((Integer) params.get(SkcConstants.PAGE_SIZE));
+            page.setPageSize(Integer.valueOf((String) params.get(SkcConstants.PAGE_SIZE)));
             params.remove(SkcConstants.PAGE_SIZE);
         }
         PageHelper.startPage(page);
@@ -256,8 +256,8 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
      * @throws InterruptedException
      */
     private String sysWalletOut(String fromWalletAddress, String toWalletAddress, String walletType, BigDecimal trans) throws BusinessException, IOException, CipherException, ExecutionException, InterruptedException {
-        Config walletAddress = configService.getByKey(SysConfigEum.WALLET_ADDRESS.getCode());
-        Config walletPath = configService.getByKey(SysConfigEum.WALLET_PATH.getCode());
+        Config walletAddress = configService.getByKey(SkcConstants.SYS_WALLET_ADDRESS);
+        Config walletPath = configService.getByKey(SkcConstants.SYS_WALLET_FILE);
         if (WalletEum.SK.getCode().equals(walletType)) {
             BigDecimal mdcBalance = walletService.getERC20Balance(walletAddress.getConfigValue(), InfuraInfo.SKC_CONTRACT_ADDRESS.getDesc());
             if (mdcBalance.doubleValue() < trans.doubleValue()) {
