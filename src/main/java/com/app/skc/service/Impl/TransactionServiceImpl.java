@@ -179,21 +179,25 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
 
     /**
      * 根据交易类型分页查询交易记录
+     * s
      *
-     * @param page
      * @param params trans_type-交易类型(必选)；from_user_id-用户id(可选)；to_user_id-用户id(可选)；wallet_type-钱包类型(可选)；trans_status-交易状态(可选)
      * @return
      */
     @Override
-    public ResponseResult transQueryByPage(Page page, Map<String, Object> params) {
-        EntityWrapper<Transaction> entityWrapper = buildTransWrapper(page, params);
+    public ResponseResult transQueryByPage(Map<String, Object> params) {
+        EntityWrapper<Transaction> entityWrapper = buildTransWrapper(params);
         List<Transaction> transactionList = transactionMapper.selectList(entityWrapper);
         return ResponseResult.success().setData(new PageInfo<>(transactionList));
     }
 
-    private EntityWrapper<Transaction> buildTransWrapper(Page page, Map<String, Object> params) {
+    private EntityWrapper<Transaction> buildTransWrapper(Map<String, Object> params) {
+        Page page = new Page();
+        page.setPageNum((Integer) params.get(SkcConstants.PAGE_NUM));
+        page.setPageSize((Integer) params.get(SkcConstants.PAGE_SIZE));
         PageHelper.startPage(page);
-        String transType = (String) params.get("trans_type");
+        params.remove(SkcConstants.PAGE_NUM);
+        params.remove(SkcConstants.PAGE_SIZE);
         EntityWrapper<Transaction> entityWrapper = new EntityWrapper<>();
         if (StringUtils.isNotBlank((String) params.get(SkcConstants.FROM_USER_ID))) {
             entityWrapper.eq(SkcConstants.FROM_USER_ID, params.get(SkcConstants.FROM_USER_ID));
@@ -207,11 +211,12 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         if (StringUtils.isNotBlank((String) params.get(SkcConstants.TRANS_STATUS))) {
             entityWrapper.eq(SkcConstants.TRANS_STATUS, params.get(SkcConstants.TRANS_STATUS));
         }
+        String transType = (String) params.get(SkcConstants.TRANS_TYPE);
         params.forEach((k, v) -> {
-            if (!"trans_type".equals(k)) {
+            if (!SkcConstants.TRANS_TYPE.equals(k)) {
                 entityWrapper.eq(k, v);
             } else {
-                entityWrapper.in("trans_type", transType.split(","));
+                entityWrapper.in(SkcConstants.TRANS_TYPE, transType.split(SkcConstants.COMMA_EN));
             }
         });
         entityWrapper.orderDesc(SqlUtils.orderBy("create_time desc"));

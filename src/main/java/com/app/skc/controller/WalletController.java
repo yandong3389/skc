@@ -64,11 +64,11 @@ public class WalletController {
 	 */
 	@GetMapping("/record/in")
 	public ResponseResult in(String userId, String walletType, Page page) {
-		Map<String, Object> params = buildTransQueryParam(userId, walletType, TransTypeEum.IN);
+		Map<String, Object> params = buildTransQueryParam(userId, walletType, TransTypeEum.IN, page);
 		if (params == null) {
 			return ResponseResult.fail(ApiErrEnum.REQ_PARAM_NOT_NULL);
 		}
-		return transactionService.transQueryByPage(page, params);
+		return transactionService.transQueryByPage(params);
 	}
 
 	/**
@@ -81,11 +81,11 @@ public class WalletController {
 	 */
 	@GetMapping("/record/out")
 	public ResponseResult out(String userId, String walletType, Page page) {
-		Map<String, Object> params = buildTransQueryParam(userId, walletType, TransTypeEum.OUT);
+		Map<String, Object> params = buildTransQueryParam(userId, walletType, TransTypeEum.OUT, page);
 		if (params == null) {
 			return ResponseResult.fail(ApiErrEnum.REQ_PARAM_NOT_NULL);
 		}
-		return transactionService.transQueryByPage(page, params);
+		return transactionService.transQueryByPage(params);
 	}
 
 	/**
@@ -132,7 +132,7 @@ public class WalletController {
 
 	}
 
-	private Map<String, Object> buildTransQueryParam(String userId, String walletType, TransTypeEum transType) {
+	private Map<String, Object> buildTransQueryParam(String userId, String walletType, TransTypeEum transType, Page page) {
 		if (StringUtils.isBlank(userId) || StringUtils.isBlank(walletType)) {
 			return null;
 		}
@@ -145,6 +145,13 @@ public class WalletController {
 			params.put(SkcConstants.FROM_USER_ID, userId);
 			params.put(SkcConstants.FROM_WALLET_TYPE, walletType);
 			params.put(SkcConstants.TRANS_TYPE, transType.getCode());
+		}
+		if (page != null) {
+			params.put(SkcConstants.PAGE_NUM, page.getPageNum());
+			params.put(SkcConstants.PAGE_SIZE, page.getPageSize());
+		} else {
+			params.put(SkcConstants.PAGE_NUM, 1);
+			params.put(SkcConstants.PAGE_SIZE, 10);
 		}
 		params.put(SkcConstants.TRANS_STATUS, TransStatusEnum.SUCCESS.getCode());
 		return params;

@@ -2,6 +2,9 @@ package com.app.skc.utils;
 
 public class SkcConstants {
 
+    public static final String COMMA_EN = ",";
+    public static final String PAGE_NUM = "pageNum";
+    public static final String PAGE_SIZE = "pageSize";
     public static final String ADDRESS = "address";
     public static final String USER_ID = "user_id";
     public static final String FROM_USER_ID = "from_user_id";

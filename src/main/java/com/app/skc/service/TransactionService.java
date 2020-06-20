@@ -2,7 +2,6 @@ package com.app.skc.service;
 
 import com.app.skc.exception.BusinessException;
 import com.app.skc.model.Transaction;
-import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
 import com.baomidou.mybatisplus.service.IService;
 import org.web3j.crypto.CipherException;
@@ -33,7 +32,7 @@ public interface TransactionService extends IService<Transaction> {
      *
      * @return ResponseResult
      */
-    ResponseResult transQueryByPage(Page page, Map<String, Object> params);
+    ResponseResult transQueryByPage(Map<String, Object> params);
 
     /**
      * 提现

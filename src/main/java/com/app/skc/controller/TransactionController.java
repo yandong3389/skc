@@ -2,7 +2,6 @@ package com.app.skc.controller;
 
 
 import com.app.skc.service.TransactionService;
-import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -38,15 +37,14 @@ public class TransactionController {
 	/**
 	 * 获取交易记录
 	 *
-	 * @param map  参数 trans_type-交易类型等
-	 * @param page 分页参数
+	 * @param map 参数 trans_type-交易类型,多个用英文逗号分隔；
 	 * @return
 	 */
 	@ApiOperation(value = "交易记录", notes = "获取交易记录")
 	@PostMapping("/getTransaction")
 	@ResponseBody
-	public ResponseResult getTransaction(@RequestParam Map<String, Object> map, Page page) {
-		return transactionService.transQueryByPage(page, map);
+	public ResponseResult getTransaction(@RequestParam Map<String, Object> map) {
+		return transactionService.transQueryByPage(map);
 	}
 
 	/**
