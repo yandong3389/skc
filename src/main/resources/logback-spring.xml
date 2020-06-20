@@ -13,7 +13,7 @@
 	<appender name="FILE_ERROR"
 			  class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<!-- 正在记录的日志文件的路径及文件名 -->
-		<file>log/skc_error.log</file>
+		<file>log/skc-error.log</file>
 		<!-- 日志记录器的滚动策略，按日期，按大小记录 -->
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
 			<fileNamePattern>log/skc-error-%d{yyyy-MM-dd}.%i.log</fileNamePattern>

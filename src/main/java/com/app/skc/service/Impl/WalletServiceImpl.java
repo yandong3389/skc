@@ -7,7 +7,9 @@ import com.app.skc.enums.WalletEum;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.WalletMapper;
 import com.app.skc.model.Wallet;
+import com.app.skc.model.system.Config;
 import com.app.skc.service.WalletService;
+import com.app.skc.service.system.ConfigService;
 import com.app.skc.utils.BaseUtils;
 import com.app.skc.utils.SkcConstants;
 import com.app.skc.utils.viewbean.ResponseResult;
@@ -32,6 +34,7 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.request.Transaction;
 import org.web3j.protocol.core.methods.response.*;
+import org.web3j.protocol.http.HttpService;
 import org.web3j.utils.Convert;
 import org.web3j.utils.Numeric;
 
@@ -62,10 +65,14 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     @Autowired
     private final WalletMapper walletMapper;
     private static final String LOG_PREFIX = "[钱包服务] - ";
+
     @Autowired
-    public WalletServiceImpl(WalletMapper walletMapper){
+    public WalletServiceImpl(WalletMapper walletMapper) {
         this.walletMapper = walletMapper;
     }
+
+    @Autowired
+    private ConfigService configService;
     @Autowired
     private Web3j web3j;
 
@@ -125,6 +132,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
         EthCall ethCall;
         BigDecimal balanceValue = BigDecimal.ZERO;
         try {
+            initWeb3j();
             ethCall = web3j.ethCall(transaction, DefaultBlockParameterName.LATEST).send();
             List<Type> results = FunctionReturnDecoder.decode(ethCall.getValue(), function.getOutputParameters());
             String value =  results.get(0).getValue().toString();
@@ -144,6 +152,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
      */
     @Override
     public BigDecimal getEthBalance(String address) throws IOException {
+        initWeb3j();
         EthGetBalance ethGetBlance = web3j.ethGetBalance(address, DefaultBlockParameterName.LATEST).send();
         String balance = Convert.fromWei(new BigDecimal(ethGetBlance.getBalance()), Convert.Unit.ETHER).toPlainString();
         return new BigDecimal(balance);
@@ -167,6 +176,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
             throw new BusinessException(null);
         }
         Credentials credentials = WalletUtils.loadCredentials("", fromPath);
+        initWeb3j();
         Web3ClientVersion web3ClientVersion = web3j.web3ClientVersion().sendAsync().get();
         String clientVersion = web3ClientVersion.getWeb3ClientVersion();
         System.out.println("version=" + clientVersion);
@@ -191,7 +201,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
 
         EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();
         transactionHash = ethSendTransaction.getTransactionHash();
-        if (transactionHash == null || "".equals(transactionHash)) {
+        if (StringUtils.isBlank(transactionHash)) {
             throw new BusinessException("交易失败");
         }
         return transactionHash;
@@ -297,11 +307,16 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
      * @param wallet
      * @return
      */
-    private Map <String, String> getReturnWallet(Wallet wallet) {
-        Map <String, String> map = new HashMap <>(2);
-        map.put(ADDRESS,wallet.getAddress());
-        map.put(MNEMONIC,wallet.getMnemonic());
+    private Map<String, String> getReturnWallet(Wallet wallet) {
+        Map<String, String> map = new HashMap<>(2);
+        map.put(ADDRESS, wallet.getAddress());
+        map.put(MNEMONIC, wallet.getMnemonic());
         return map;
+    }
+
+    private void initWeb3j() {
+        Config config = configService.getByKey(SkcConstants.INFURA_ADDRESS);
+        web3j = Web3j.build(new HttpService(config.getConfigValue()));
     }
 
 }
