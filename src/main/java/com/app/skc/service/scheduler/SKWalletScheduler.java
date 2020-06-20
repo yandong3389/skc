@@ -62,7 +62,7 @@ public class SKWalletScheduler {
     @Value("${recharge.local-address}")
     private String localAddress;
 
-    @Scheduled(cron = "0 */15 * * * ?")
+    @Scheduled(cron = "0 */5 * * * ?")
     public void invest() throws ExecutionException, InterruptedException {
         logger.info("{}开始监听充值交易...", LOG_PREFIX);
         String address = WebUtils.getHostAddress();
