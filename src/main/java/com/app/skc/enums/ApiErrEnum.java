@@ -15,6 +15,7 @@ public enum ApiErrEnum {
 
     NO_DEAL_PRICE("1101", "无最新成交价"),
     NO_COMMISSION("1102", "无委托交易"),
+    NO_ENTRUST_ORDER("1103", "无委托交易"),
     ;
     /**
      * 描述

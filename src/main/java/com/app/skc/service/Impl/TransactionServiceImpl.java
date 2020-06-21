@@ -2,7 +2,6 @@ package com.app.skc.service.Impl;
 
 import com.app.skc.common.Exchange;
 import com.app.skc.common.ExchangeCenter;
-import com.app.skc.common.Kline;
 import com.app.skc.enums.*;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.TransactionMapper;
@@ -23,18 +22,20 @@ import com.baomidou.mybatisplus.service.impl.ServiceImpl;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.web3j.crypto.CipherException;
 import org.web3j.protocol.Web3j;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import static com.app.skc.enums.ApiErrEnum.NO_COMMISSION;
@@ -374,6 +375,14 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     @Transactional(rollbackFor = Exception.class)
     @Override
     public ResponseResult buy(String userId, String priceStr, Integer quantity) {
+        //获取到账钱包
+        EntityWrapper<Wallet> toWalletWrapper = new EntityWrapper<>();
+        toWalletWrapper.eq(SkcConstants.USER_ID, userId);
+        toWalletWrapper.eq(SkcConstants.WALLET_TYPE, WalletEum.USDT.getCode());
+        List<Wallet> toWallets = walletMapper.selectList(toWalletWrapper);
+        if (CollectionUtils.isEmpty(toWallets)){
+            return ResponseResult.fail(ApiErrEnum.WALLET_NOT_MAINTAINED);
+        }
         ResponseResult result = ResponseResult.success();
         BigDecimal price = new BigDecimal(priceStr);
         ExchangeCenter exchangeCenter = ExchangeCenter.getInstance();
@@ -385,6 +394,14 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     @Transactional(rollbackFor = Exception.class)
     @Override
     public ResponseResult sell(String userId, String priceStr, Integer quantity) {
+        //获取到账钱包
+        EntityWrapper<Wallet> toWalletWrapper = new EntityWrapper<>();
+        toWalletWrapper.eq(SkcConstants.USER_ID, userId);
+        toWalletWrapper.eq(SkcConstants.WALLET_TYPE, WalletEum.SK.getCode());
+        List<Wallet> toWallets = walletMapper.selectList(toWalletWrapper);
+        if (CollectionUtils.isEmpty(toWallets)){
+            return ResponseResult.fail(ApiErrEnum.WALLET_NOT_MAINTAINED);
+        }
         ResponseResult result = ResponseResult.success();
         BigDecimal price = new BigDecimal(priceStr);
         ExchangeCenter exchangeCenter = ExchangeCenter.getInstance();
@@ -422,43 +439,24 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
 
     @Override
     public ResponseResult getEntrust(String userId) {
-        List<Exchange> exchanges = new ArrayList<>();
-        Exchange exchange = new Exchange();
-        exchange.setUserId(userId);
-        exchange.setEntrustOrder(BaseUtils.get64UUID());
-        exchange.setPrice(new BigDecimal("11.11"));
-        exchange.setQuantity(100);
-        exchange.setType(TransTypeEum.BUY.getCode());
-        exchanges.add(exchange);
-        Exchange sellExchange = new Exchange();
-        sellExchange.setUserId(userId);
-        sellExchange.setEntrustOrder(BaseUtils.get64UUID());
-        sellExchange.setPrice(new BigDecimal("10.01"));
-        sellExchange.setQuantity(100);
-        sellExchange.setType(TransTypeEum.SELL.getCode());
-        exchanges.add(sellExchange);
-        return ResponseResult.success("", exchanges);
+        ExchangeCenter exchangeCenter = ExchangeCenter.getInstance();
+        return ResponseResult.success("", exchangeCenter.getEntrust(userId));
     }
 
     @Override
     public ResponseResult kline() {
-        String[] line = new String[2440];
-        for (int i = 0; i <line.length; i++) {
-            double random = Math.random()*(10) + 1;
-            line[i] = String.format("%.2f",random);
-        }
-        Kline kline = new Kline(DateUtils.truncate(new Date(), Calendar.DATE), line);
-        return ResponseResult.success("成功",kline);
+        ExchangeCenter exchangeCenter = ExchangeCenter.getInstance();
+        return ResponseResult.success("成功",exchangeCenter.kline());
     }
 
     @Override
     public ResponseResult cancelEntrust(String userId, String entrustOrder) {
-        Exchange exchange = new Exchange();
-        exchange.setUserId(userId);
-        exchange.setEntrustOrder(entrustOrder);
-        exchange.setPrice(new BigDecimal("10.01"));
-        exchange.setQuantity(100);
-        exchange.setType(TransTypeEum.SELL.getCode());
-        return ResponseResult.success("取消成功", exchange);
+        ExchangeCenter exchangeCenter = ExchangeCenter.getInstance();
+        boolean ret = exchangeCenter.cancelEntrust(userId, entrustOrder);
+        if (ret) {
+            return ResponseResult.success("取消成功", true);
+        }else {
+            return ResponseResult.fail(ApiErrEnum.NO_ENTRUST_ORDER);
+        }
     }
 }
