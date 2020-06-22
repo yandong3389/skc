@@ -8,8 +8,8 @@ public enum TransStatusEnum {
     APPROVED("APPROVED", "审核通过"),
     SUCCESS("SUCCESS", "交易成功"),
     FAILED("FAILED", "交易失败"),
-
-    ;
+    EFFECT("EFFECT", "合约生效"),
+    UNEFFECT("UNEFFECT", "合约出局");
     /**
      * 描述
      */

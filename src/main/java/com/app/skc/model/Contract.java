@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotations.TableName;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
  * 合约
@@ -32,7 +33,7 @@ public class Contract extends Model<Contract> {
     /**
      * 合约价格
      */
-    private Integer price;
+    private BigDecimal price;
 
     /**
      * 合约状态 0 启用 1 停用

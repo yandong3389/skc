@@ -46,7 +46,7 @@
         transaction_status,
         transaction_hash,
         contract_type
-        from mdc_transaction
+        from skc_transaction
         where 0 = 0
         <if test='from_user_id!=null and from_user_id!=""'>
             and from_user_id = #{from_user_id}
