@@ -3,6 +3,7 @@ package com.app.skc.controller;
 
 import com.app.skc.enums.TransTypeEum;
 import com.app.skc.service.TransactionService;
+import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -76,7 +77,7 @@ public class ExchangeController {
             map = new HashMap<>();
         }
         map.putIfAbsent("trans_type", String.join(",", TransTypeEum.BUY.getCode(), TransTypeEum.SELL.getCode()));
-        return transactionService.transQueryByPage(map);
+        return transactionService.transQueryByPage(map, new Page());
     }
 
     /**

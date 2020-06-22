@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.app.skc.enums.ApiErrEnum;
 import com.app.skc.enums.TransStatusEnum;
 import com.app.skc.enums.TransTypeEum;
+import com.app.skc.enums.WalletEum;
 import com.app.skc.service.TransactionService;
 import com.app.skc.service.WalletService;
 import com.app.skc.utils.SkcConstants;
@@ -61,34 +62,32 @@ public class WalletController {
 	 * 获取用户充值记录
 	 *
 	 * @param userId     用户 id
-	 * @param walletType 钱包类型
 	 * @param page       分页信息
 	 * @return
 	 */
 	@GetMapping("/record/in")
-	public ResponseResult in(String userId, String walletType, Page page) {
-		Map<String, Object> params = buildTransQueryParam(userId, walletType, TransTypeEum.IN, page);
+	public ResponseResult in(String userId, Page page) {
+		Map <String, Object> params = buildTransQueryParam(userId, WalletEum.USDT.getCode(), TransTypeEum.IN);
 		if (params == null) {
 			return ResponseResult.fail(ApiErrEnum.REQ_PARAM_NOT_NULL);
 		}
-		return transactionService.transQueryByPage(params);
+		return transactionService.transQueryByPage(params, page);
 	}
 
 	/**
 	 * 获取用户提现记录
 	 *
 	 * @param userId     用户 id
-	 * @param walletType 用户类型
 	 * @param page       分页信息
 	 * @return
 	 */
 	@GetMapping("/record/out")
-	public ResponseResult out(String userId, String walletType, Page page) {
-		Map<String, Object> params = buildTransQueryParam(userId, walletType, TransTypeEum.OUT, page);
+	public ResponseResult out(String userId, Page page) {
+		Map <String, Object> params = buildTransQueryParam(userId, WalletEum.USDT.getCode(), TransTypeEum.OUT);
 		if (params == null) {
 			return ResponseResult.fail(ApiErrEnum.REQ_PARAM_NOT_NULL);
 		}
-		return transactionService.transQueryByPage(params);
+		return transactionService.transQueryByPage(params, page);
 	}
 
 	/**
@@ -137,7 +136,7 @@ public class WalletController {
 
 	}
 
-	private Map<String, Object> buildTransQueryParam(String userId, String walletType, TransTypeEum transType, Page page) {
+	private Map <String, Object> buildTransQueryParam(String userId, String walletType, TransTypeEum transType) {
 		if (StringUtils.isBlank(userId) || StringUtils.isBlank(walletType)) {
 			return null;
 		}
@@ -150,13 +149,6 @@ public class WalletController {
 			params.put(SkcConstants.FROM_USER_ID, userId);
 			params.put(SkcConstants.FROM_WALLET_TYPE, walletType);
 			params.put(SkcConstants.TRANS_TYPE, transType.getCode());
-		}
-		if (page != null) {
-			params.put(SkcConstants.PAGE_NUM, page.getPageNum());
-			params.put(SkcConstants.PAGE_SIZE, page.getPageSize());
-		} else {
-			params.put(SkcConstants.PAGE_NUM, 1);
-			params.put(SkcConstants.PAGE_SIZE, 10);
 		}
 		params.put(SkcConstants.TRANS_STATUS, TransStatusEnum.SUCCESS.getCode());
 		return params;

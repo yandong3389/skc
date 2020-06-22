@@ -85,7 +85,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         }
         //格式化转账金额
         BigDecimal transAmt = new BigDecimal(amount);
-
         //获取发起转账钱包
         EntityWrapper<Wallet> fromWalletWrapper = new EntityWrapper<>();
         fromWalletWrapper.eq(SkcConstants.USER_ID, userId);
@@ -108,18 +107,11 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         } else {
             return ResponseResult.fail(ApiErrEnum.WALLET_NOT_MAINTAINED);
         }
-        // 计算转账手续费
-        Config config;
-        if (WalletEum.SK.getCode().equals(walletType)) {
-            config = configService.getByKey(SysConfigEum.SKC_TRANS_FEE.getCode());
-        } else {
-            config = configService.getByKey(SysConfigEum.USDT_TRANS_FEE.getCode());
-        }
-        String value = config.getConfigValue();
-        BigDecimal fee = new BigDecimal(value);
+
         if (transAmt.doubleValue() > fromWallet.getBalAvail().doubleValue()) {
             return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
         }
+        BigDecimal fee = BigDecimal.ZERO;
         setTransBalance(transAmt, fee, fromWallet, toWallet);
         saveTransfer(userId, walletType, fromWallet, toWallet, transAmt, fee);
         return ResponseResult.success();
@@ -188,21 +180,15 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
      * @return
      */
     @Override
-    public ResponseResult transQueryByPage(Map<String, Object> params) {
-        EntityWrapper<Transaction> entityWrapper = buildTransWrapper(params);
+    public ResponseResult transQueryByPage(Map <String, Object> params, Page page) {
+        EntityWrapper <Transaction> entityWrapper = buildTransWrapper(params, page);
         List<Transaction> transactionList = transactionMapper.selectList(entityWrapper);
         return ResponseResult.success().setData(new PageInfo<>(transactionList));
     }
 
-    private EntityWrapper<Transaction> buildTransWrapper(Map<String, Object> params) {
-        Page page = new Page();
-        if (StringUtils.isNotBlank((String) params.get(SkcConstants.PAGE_NUM))) {
-            page.setPageNum(Integer.valueOf((String) params.get(SkcConstants.PAGE_NUM)));
-            params.remove(SkcConstants.PAGE_NUM);
-        }
-        if (StringUtils.isNotBlank((String) params.get(SkcConstants.PAGE_SIZE))) {
-            page.setPageSize(Integer.valueOf((String) params.get(SkcConstants.PAGE_SIZE)));
-            params.remove(SkcConstants.PAGE_SIZE);
+    private EntityWrapper <Transaction> buildTransWrapper(Map <String, Object> params, Page page) {
+        if (page == null) {
+            page = new Page();
         }
         PageHelper.startPage(page);
         EntityWrapper<Transaction> entityWrapper = new EntityWrapper<>();
