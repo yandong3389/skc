@@ -27,6 +27,8 @@ public class KLineScheduler {
     private WalletMapper walletMapper;
     @Autowired
     private ConfigService configService;
+    @Autowired
+    private ExchangeCenter exchangeCenter;
 
     /**
      * 每分钟执行一次 , 保持当前最新成交价
@@ -34,7 +36,6 @@ public class KLineScheduler {
     @Scheduled(cron = "0 * * * * ?")
     public void kline(){
         logger.info("{}定时任务开始...", LOG_PREFIX);
-        ExchangeCenter exchangeCenter = ExchangeCenter.getInstance();
         int minuteOfDay = getMinuteOfDay();
         logger.info("{}当前时间-{} , 分钟数-{}",LOG_PREFIX,new Date(),minuteOfDay);
         exchangeCenter.kline(minuteOfDay);

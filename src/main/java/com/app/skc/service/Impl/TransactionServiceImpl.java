@@ -62,6 +62,8 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     private Web3j web3j;
     @Autowired
     private ConfigService configService;
+    @Autowired
+    private ExchangeCenter exchangeCenter;
 
     /**
      * 系统内部转账
@@ -371,7 +373,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         }
         ResponseResult result = ResponseResult.success();
         BigDecimal price = new BigDecimal(priceStr);
-        ExchangeCenter exchangeCenter = ExchangeCenter.getInstance();
         List<Transaction> transactions = exchangeCenter.buy(userId, price, quantity);
         result.setData(transactions);
         return result;
@@ -390,7 +391,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         }
         ResponseResult result = ResponseResult.success();
         BigDecimal price = new BigDecimal(priceStr);
-        ExchangeCenter exchangeCenter = ExchangeCenter.getInstance();
         List<Transaction> transactions = exchangeCenter.sell(userId, price, quantity);
         result.setData(transactions);
         return result;
@@ -398,7 +398,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
 
     @Override
     public ResponseResult queryBuy() {
-        List<Exchange> buyList = ExchangeCenter.getInstance().queryBuy();
+        List<Exchange> buyList = exchangeCenter.queryBuy();
         if(buyList == null){
             return ResponseResult.fail(NO_COMMISSION);
         }
@@ -407,7 +407,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
 
     @Override
     public ResponseResult querySell() {
-        List<Exchange> sellList = ExchangeCenter.getInstance().querySell();
+        List<Exchange> sellList = exchangeCenter.querySell();
         if (sellList == null){
             return ResponseResult.fail(NO_COMMISSION);
         }
@@ -416,7 +416,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
 
     @Override
     public ResponseResult price() {
-        BigDecimal price = ExchangeCenter.getInstance().price();
+        BigDecimal price = exchangeCenter.price();
         if (price == null) {
             return ResponseResult.fail(NO_DEAL_PRICE);
         }
@@ -425,19 +425,16 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
 
     @Override
     public ResponseResult getEntrust(String userId) {
-        ExchangeCenter exchangeCenter = ExchangeCenter.getInstance();
         return ResponseResult.success("", exchangeCenter.getEntrust(userId));
     }
 
     @Override
     public ResponseResult kline() {
-        ExchangeCenter exchangeCenter = ExchangeCenter.getInstance();
         return ResponseResult.success("成功",exchangeCenter.kline());
     }
 
     @Override
     public ResponseResult cancelEntrust(String userId, String entrustOrder) {
-        ExchangeCenter exchangeCenter = ExchangeCenter.getInstance();
         boolean ret = exchangeCenter.cancelEntrust(userId, entrustOrder);
         if (ret) {
             return ResponseResult.success("取消成功", true);

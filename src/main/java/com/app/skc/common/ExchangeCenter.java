@@ -1,14 +1,18 @@
 package com.app.skc.common;
 
+import com.alibaba.fastjson.JSON;
 import com.app.skc.enums.TransTypeEum;
 import com.app.skc.enums.WalletEum;
 import com.app.skc.mapper.WalletMapper;
 import com.app.skc.model.Transaction;
 import com.app.skc.model.Wallet;
+import com.app.skc.utils.RedisUtils;
 import com.app.skc.utils.SkcConstants;
 import com.app.skc.utils.SpringContextHolder;
 import com.baomidou.mybatisplus.mapper.EntityWrapper;
 import org.apache.commons.lang3.time.DateUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
@@ -17,18 +21,14 @@ import java.util.*;
 /**
  * 交易所交易数据中心
  */
+@Component
 public class ExchangeCenter {
 
-    private static ExchangeCenter exchangeCenter;
-    /**
-     * 当前买入队列
-     */
-    private LinkedList<Exchange> buyingLeads;
+    private static final String BUYING_LEADS = "buyingLeads";
+    private static final String SELL_LEADS = "sellLeads";
 
-    /**
-     * 当前卖出队列
-     */
-    private LinkedList<Exchange> sellLeads;
+    @Autowired
+    private RedisUtils redisUtils;
 
     /**
      * 当天K线数据
@@ -44,47 +44,23 @@ public class ExchangeCenter {
      */
     private BigDecimal lastPrice;
 
-    private ExchangeCenter() {
-    }
-
-    /**
-     * 获取数据中心单例
-     *
-     * @return 数据中心
-     */
-    public static ExchangeCenter getInstance() {
-        if (exchangeCenter != null)
-            return exchangeCenter;
-        exchangeCenter = init();
-        return exchangeCenter;
-    }
-
-    /**
-     * 初始化数据中心
-     *
-     * @return 数据中心
-     */
-    private static ExchangeCenter init() {
-        ExchangeCenter exchangeCenter = new ExchangeCenter();
-        exchangeCenter.buyingLeads = new LinkedList<>();
-        exchangeCenter.sellLeads = new LinkedList<>();
-        exchangeCenter.lastPrice = null;
-        return exchangeCenter;
-    }
-
     public BigDecimal price() {
         return lastPrice;
     }
 
     public List<Exchange> queryBuy() {
-        if (CollectionUtils.isEmpty(buyingLeads))
+        long size = redisUtils.lGetListSize(BUYING_LEADS);
+        if (size == 0) {
             return null;
-        return mergeList(buyingLeads);
+        }
+        List<String> strings = redisUtils.lGet(BUYING_LEADS, 0, -1);
+        return mergeList(strings);
     }
 
-    private List<Exchange> mergeList(List<Exchange> exchanges) {
+    private List<Exchange> mergeList(List<String> exchanges) {
         List<Exchange> retList = new ArrayList<>();
-        for (Exchange exchange : exchanges) {
+        for (String exchangeStr : exchanges) {
+            Exchange exchange = JSON.parseObject(exchangeStr, Exchange.class);
             Exchange ex = new Exchange();
             ex.setQuantity(exchange.getQuantity());
             ex.setPrice(exchange.getPrice());
@@ -103,9 +79,12 @@ public class ExchangeCenter {
     }
 
     public List<Exchange> querySell() {
-        if (CollectionUtils.isEmpty(sellLeads))
+        long size = redisUtils.lGetListSize(SELL_LEADS);
+        if (size == 0) {
             return null;
-        return mergeList(sellLeads);
+        }
+        List<String> strings = redisUtils.lGet(SELL_LEADS, 0, -1);
+        return mergeList(strings);
     }
 
     public List<Transaction> buy(String buyUserId, BigDecimal buyPrice, Integer buyQuantity) {
@@ -134,14 +113,21 @@ public class ExchangeCenter {
         List<Exchange> retList = new ArrayList<>();
         if (userId == null)
             return  retList;
-        for (Exchange buyingLead : buyingLeads) {
-            if (userId.equals(buyingLead.getUserId())) {
-                retList.add(buyingLead);
-            }
+        List<String> buyList = redisUtils.lGet(BUYING_LEADS, 0, -1);
+        List<String> sellList = redisUtils.lGet(SELL_LEADS, 0, -1);
+        List<String> exchangeList = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(buyList)) {
+            exchangeList.addAll(buyList);
         }
-        for (Exchange buyingLead : sellLeads) {
-            if (userId.equals(buyingLead.getUserId())) {
-                retList.add(buyingLead);
+        if (!CollectionUtils.isEmpty(sellList)) {
+            exchangeList.addAll(sellList);
+        }
+        if (CollectionUtils.isEmpty(exchangeList))
+            return retList;
+        for (String exchangeStr : exchangeList) {
+            Exchange exchange = JSON.parseObject(exchangeStr, Exchange.class);
+            if (userId.equals(exchange.getUserId())) {
+                retList.add(exchange);
             }
         }
         return retList;
@@ -150,7 +136,7 @@ public class ExchangeCenter {
     public boolean cancelEntrust(String userId,String entrustOrder){
         if (userId == null || entrustOrder == null)
             return false;
-        return cancelEntrust(buyingLeads, entrustOrder) || cancelEntrust(sellLeads, entrustOrder);
+        return cancelBuyEntrust( entrustOrder) || cancelSellEntrust(entrustOrder);
     }
 
     public void kline(int minute){
@@ -169,11 +155,28 @@ public class ExchangeCenter {
         return kline;
     }
 
-    private boolean cancelEntrust(List<Exchange> exchanges , String order){
-        Iterator<Exchange> iterator = exchanges.iterator();
-        while (iterator.hasNext()) {
-            if (order.equals(iterator.next().getEntrustOrder())) {
-                iterator.remove();
+    private boolean cancelBuyEntrust(String order){
+        List<String> strings = redisUtils.lGet(BUYING_LEADS, 0, -1);
+        if (CollectionUtils.isEmpty(strings))
+            return false;
+        for (String string : strings) {
+            Exchange exchange = JSON.parseObject(string, Exchange.class);
+            if (order.equals(exchange.getEntrustOrder())) {
+                redisUtils.lRemove(BUYING_LEADS, 1, string);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean cancelSellEntrust(String order){
+        List<String> strings = redisUtils.lGet(SELL_LEADS, 0, -1);
+        if (CollectionUtils.isEmpty(strings))
+            return false;
+        for (String string : strings) {
+            Exchange exchange = JSON.parseObject(string, Exchange.class);
+            if (order.equals(exchange.getEntrustOrder())) {
+                redisUtils.lRemove(SELL_LEADS, 1, string);
                 return true;
             }
         }
@@ -184,11 +187,12 @@ public class ExchangeCenter {
         Integer buyQuantity = buyExchange.getQuantity();
         if (buyQuantity == 0)
             return null;
-        if (CollectionUtils.isEmpty(sellLeads)) {
+        String sellStr = redisUtils.lGetIndex(SELL_LEADS, 0);
+        if (sellStr == null) {
             insertBuy(buyExchange);
             return null;
         }
-        Exchange sell = sellLeads.getFirst();
+        Exchange sell = JSON.parseObject(sellStr,Exchange.class);
         BigDecimal sellPrice = sell.getPrice();
         Integer sellQuantity = sell.getQuantity();
         if (buyExchange.getPrice().compareTo(sellPrice) < 0) {
@@ -199,7 +203,7 @@ public class ExchangeCenter {
         int transQuantity;
         if (sellQuantity <= buyQuantity) {
             buyExchange.setQuantity(buyQuantity - sellQuantity);
-            sellLeads.removeFirst();
+            redisUtils.leftPop(SELL_LEADS);
             transQuantity = sellQuantity;
         } else {
             buyExchange.setQuantity(0);
@@ -217,11 +221,12 @@ public class ExchangeCenter {
         Integer sellQuantity = sellExchange.getQuantity();
         if (sellQuantity == 0)
             return null;
-        if (CollectionUtils.isEmpty(buyingLeads)) {
+        String buyStr = redisUtils.lGetIndex(BUYING_LEADS, 0);
+        if (buyStr == null) {
             insertSell(sellExchange);
             return null;
         }
-        Exchange buy = buyingLeads.getFirst();
+        Exchange buy = JSON.parseObject(buyStr,Exchange.class);
         BigDecimal buyPrice = buy.getPrice();
         Integer buyQuantity = buy.getQuantity();
         if (sellExchange.getPrice().compareTo(buyPrice) > 0) {
@@ -232,7 +237,7 @@ public class ExchangeCenter {
         int transQuantity;
         if (buyQuantity <= sellQuantity) {
             sellExchange.setQuantity(sellQuantity - buyQuantity);
-            buyingLeads.removeFirst();
+            redisUtils.leftPop(BUYING_LEADS);
             transQuantity = buyQuantity;
 
         } else {
@@ -248,31 +253,37 @@ public class ExchangeCenter {
     }
 
     private void insertBuy(Exchange buyExchange) {
-        if (CollectionUtils.isEmpty(buyingLeads)) {
-            buyingLeads.add(buyExchange);
+        long size = redisUtils.lGetListSize(BUYING_LEADS);
+        if (size == 0) {
+            redisUtils.lSet(BUYING_LEADS,JSON.toJSONString(buyExchange));
             return;
         }
-        for (int i = 0; i < buyingLeads.size(); i++) {
-            if (buyingLeads.get(i).getPrice().compareTo(buyExchange.getPrice()) < 0) {
-                buyingLeads.add(i, buyExchange);
+        for (int i = 0; i < size; i++) {
+            String buy = redisUtils.lGetIndex(BUYING_LEADS, i);
+            Exchange exchange = JSON.parseObject(buy, Exchange.class);
+            if (exchange.getPrice().compareTo(buyExchange.getPrice()) < 0) {
+                redisUtils.rightPush(BUYING_LEADS, buy, JSON.toJSONString(buyExchange));
                 return;
             }
         }
-        buyingLeads.addLast(buyExchange);
+        redisUtils.lSet(BUYING_LEADS,JSON.toJSONString(buyExchange));
     }
 
     private void insertSell(Exchange sellExchange) {
-        if (CollectionUtils.isEmpty(sellLeads)) {
-            sellLeads.add(sellExchange);
+        long size = redisUtils.lGetListSize(SELL_LEADS);
+        if (size == 0) {
+            redisUtils.lSet(SELL_LEADS,JSON.toJSONString(sellExchange));
             return;
         }
-        for (int i = 0; i < sellLeads.size(); i++) {
-            if (sellLeads.get(i).getPrice().compareTo(sellExchange.getPrice()) > 0) {
-                sellLeads.add(i, sellExchange);
+        for (int i = 0; i < size; i++) {
+            String sell = redisUtils.lGetIndex(SELL_LEADS, i);
+            Exchange exchange = JSON.parseObject(sell, Exchange.class);
+            if (exchange.getPrice().compareTo(sellExchange.getPrice()) > 0) {
+                redisUtils.rightPush(BUYING_LEADS, sell, JSON.toJSONString(sellExchange));
                 return;
             }
         }
-        sellLeads.addLast(sellExchange);
+        redisUtils.lSet(SELL_LEADS,JSON.toJSONString(sellExchange));
     }
 
     private Transaction fillTransaction(String fromUserId, String toUserId, TransTypeEum transType, BigDecimal price, Integer quantity) {
