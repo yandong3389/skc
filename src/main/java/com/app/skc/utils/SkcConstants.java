@@ -18,5 +18,6 @@ public class SkcConstants {
     public static final String INFURA_ADDRESS = "INFURA_ADDRESS";
     public static final String SYS_WALLET_FILE = "SYS_WALLET_FILE";
     public static final String SYS_WALLET_ADDRESS = "SYS_WALLET_ADDRESS";
+    public static final String CREATE_TIME = "create_time";
 
 }

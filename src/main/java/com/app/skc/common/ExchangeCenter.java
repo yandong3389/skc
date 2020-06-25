@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.app.skc.enums.TransTypeEum;
 import com.app.skc.enums.WalletEum;
 import com.app.skc.mapper.WalletMapper;
+import com.app.skc.model.Kline;
 import com.app.skc.model.Transaction;
 import com.app.skc.model.Wallet;
 import com.app.skc.utils.RedisUtils;
@@ -16,7 +17,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * 交易所交易数据中心
@@ -37,7 +41,7 @@ public class ExchangeCenter {
      * 00:00对应line[0]
      * 23:59对应line[2339]
      */
-    private Kline kline;
+    private List<Kline> kline;
 
     /**
      * 最新成交价
@@ -140,18 +144,22 @@ public class ExchangeCenter {
     }
 
     public void kline(int minute){
-        if (kline == null || minute == 0){
-            String[] line = new String[2440];
-            Arrays.fill(line,"0.00");
-            line[minute] = String.format("%.2f",lastPrice == null?0:lastPrice.doubleValue());
-            kline = new Kline(DateUtils.truncate(new Date(), Calendar.DATE), line);
-        }else {
-            String[] line = kline.getLine();
-            line[minute] = String.format("%.2f",lastPrice == null?0:lastPrice.doubleValue());
-        }
+//        if (kline == null || minute == 0){
+//            String[] line = new String[2440];
+//            Arrays.fill(line,"0.00");
+//            line[minute] = String.format("%.2f",lastPrice == null?0:lastPrice.doubleValue());
+//            kline = new Kline(DateUtils.truncate(new Date(), Calendar.DATE), line);
+//        }else {
+//            String[] line = kline.getLine();
+//            line[minute] = String.format("%.2f",lastPrice == null?0:lastPrice.doubleValue());
+//        }
     }
 
-    public Kline kline(){
+    public List<Kline> kline(){
+        kline = new ArrayList<>();
+        Date now = new Date();
+        Kline k = new Kline(DateUtils.addMinutes(now, -15), now);
+        kline.add(k);
         return kline;
     }
 
