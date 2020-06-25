@@ -158,7 +158,9 @@ public class ExchangeCenter {
     public List<Kline> kline(){
         kline = new ArrayList<>();
         Date now = new Date();
+        Kline k1 = new Kline(DateUtils.addMinutes(now, -30), DateUtils.addMinutes(now, -15));
         Kline k = new Kline(DateUtils.addMinutes(now, -15), now);
+        kline.add(k1);
         kline.add(k);
         return kline;
     }
