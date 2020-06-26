@@ -66,12 +66,16 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         } else {
             throw new BusinessException("合约购买失败,合约不存在或者未开放。");
         }
+        BigDecimal surplusContract = wallet.getSurplusContract();
         if (wallet.getBalAvail().compareTo(price) >= 0) {
             BigDecimal oloContractPrice = queryPerformance(new HashMap(), userId);
+            if (surplusContract.compareTo(BigDecimal.ZERO) > 0) {
+                throw new BusinessException("合约购买失败,原合约未释放完。");
+            }
             if (price.compareTo(oloContractPrice) >= 0) {
                 saveBuy(userId, wallet, price);
             } else {
-                throw new BusinessException("不能购买比原合约低的合约。");
+                throw new BusinessException("合约购买失败,不能购买比原合约低的合约。");
             }
         } else {
             throw new BusinessException("合约购买失败,用户余额不足。");
@@ -104,7 +108,7 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         transactionMapper.insert(transaction);
         wallet.setBalTotal(wallet.getBalAvail().subtract(price));
         wallet.setBalAvail(wallet.getBalAvail().subtract(price));
-        wallet.setTotalContract(price.multiply(contactDouble));
+        wallet.setSurplusContract(price.multiply(contactDouble));
         walletMapper.updateById(wallet);
     }
 

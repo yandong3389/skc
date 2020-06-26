@@ -35,7 +35,7 @@ public class Wallet extends Model<Wallet> {
     private BigDecimal balFreeze;
     private BigDecimal balReward;
     private BigDecimal surplusContract;
-    private BigDecimal totalContract;
+    private BigDecimal comsumedContract;
     private Date createTime;
     private Date modifyTime;
 
