@@ -1,5 +1,6 @@
 package com.app.skc.service.Impl;
 
+import com.app.skc.enums.SysConfigEum;
 import com.app.skc.enums.TransStatusEnum;
 import com.app.skc.enums.TransTypeEum;
 import com.app.skc.enums.WalletEum;
@@ -11,6 +12,7 @@ import com.app.skc.model.Contract;
 import com.app.skc.model.Transaction;
 import com.app.skc.model.Wallet;
 import com.app.skc.service.ContractService;
+import com.app.skc.service.system.ConfigService;
 import com.app.skc.utils.BaseUtils;
 import com.app.skc.utils.SkcConstants;
 import com.baomidou.mybatisplus.mapper.EntityWrapper;
@@ -37,6 +39,8 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
     ContractMapper contractMapper;
     @Autowired
     WalletMapper walletMapper;
+    @Autowired
+    ConfigService configService;
 
     @Transactional(rollbackFor = BusinessException.class)
     @Override
@@ -84,6 +88,7 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
      * @param price
      */
     private void saveBuy(String userId, Wallet wallet, BigDecimal price) {
+        BigDecimal contactDouble = new BigDecimal(configService.getByKey(SysConfigEum.CONTRACT_DOUBLE.getCode()).getConfigValue());
         Date date = new Date();
         //购买
         Transaction transaction = new Transaction();
@@ -99,6 +104,7 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         transactionMapper.insert(transaction);
         wallet.setBalTotal(wallet.getBalAvail().subtract(price));
         wallet.setBalAvail(wallet.getBalAvail().subtract(price));
+        wallet.setTotalContract(price.multiply(contactDouble));
         walletMapper.updateById(wallet);
     }
 

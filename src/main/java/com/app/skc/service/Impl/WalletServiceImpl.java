@@ -280,6 +280,8 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
         wallet.setBalFreeze(init);
         wallet.setBalReward(init);
         wallet.setBalTotal(init);
+        wallet.setSurplusContract(init);
+        wallet.setTotalContract(init);
         wallet.setMnemonic(NULL);
         wallet.setPublicKey(publicKey.toString());
         wallet.setPrivateKey(privateKey.toString());
