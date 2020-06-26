@@ -121,7 +121,6 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
      */
     @Override
     public BigDecimal teamPerformance(List <String> userIds) {
-
         BigDecimal performance = BigDecimal.ZERO;
         Map map = new HashMap();
         for (String userId : userIds) {

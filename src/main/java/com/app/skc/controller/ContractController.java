@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,8 +79,7 @@ public class ContractController {
         Map map = new HashMap();
         map.put(SkcConstants.FROM_USER_ID, userId);
         map.put(SkcConstants.TRANS_TYPE, TransTypeEum.CONTRACT.getCode());
-        transactionMapper.selectByMap(map);
-        List list = new ArrayList();
+        List list = transactionMapper.selectByMap(map);
         logger.info("{}查询成功,查询到[{}]条记录", LOG_PREFIX, list.size());
         return ResponseResult.success().setData(new PageInfo<>(list));
     }
