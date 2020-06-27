@@ -7,9 +7,6 @@ import com.app.skc.mapper.WalletMapper;
 import com.app.skc.model.UserShareVO;
 import com.app.skc.service.ContractProfitService;
 import com.app.skc.service.system.ConfigService;
-import com.app.skc.utils.HttpClientUtil;
-import com.app.skc.utils.WebUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +15,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,15 +42,15 @@ public class ContractProfitScheduler {
     @Autowired
     private ContractProfitService contractProfitService;
 
-    @Scheduled(cron = "0 */5 * * * ?")
+    @Scheduled(cron = "0 0/3 * * * ?")
     public void releaseProfit() {
         logger.info("{}job开始...", LOG_PREFIX);
         // 1、过滤非job执行地址
-        String curIpAdd = WebUtils.getHostAddress();
-        if (!curIpAdd.equals(jobAddress)) {
-            logger.info("{}非job执行地址[{}], 指定地址:[{}].", LOG_PREFIX, curIpAdd, jobAddress);
-            return;
-        }
+//        String curIpAdd = WebUtils.getHostAddress();
+//        if (!curIpAdd.equals(jobAddress)) {
+//            logger.info("{}非job执行地址[{}], 指定地址:[{}].", LOG_PREFIX, curIpAdd, jobAddress);
+//            return;
+//        }
         // 2、获取分享合约用户树列表
         List<UserShareVO> userShareList = queryUserTreeList();
 
@@ -68,11 +66,8 @@ public class ContractProfitScheduler {
 
     private List<UserShareVO> queryUserTreeList() {
         List<UserShareVO> treeUserList = new ArrayList<>();
-        String treeUsersRes = HttpClientUtil.sendGet(API_TREE_USERS);
-        if (StringUtils.isBlank(treeUsersRes)) {
-            return treeUserList;
-        }
-        JSONObject jsonObj = JSONObject.parseObject(treeUsersRes);
+        RestTemplate restTemplate = new RestTemplate();
+        JSONObject jsonObj = restTemplate.getForObject(API_TREE_USERS, JSONObject.class);
         if (jsonObj == null) {
             return treeUserList;
         }
