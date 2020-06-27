@@ -1,17 +1,16 @@
 package com.app.skc.model;
 
-import com.alibaba.fastjson.JSON;
+import com.app.skc.enums.KlineEum;
+import com.baomidou.mybatisplus.activerecord.Model;
 import com.baomidou.mybatisplus.annotations.TableName;
 import lombok.Data;
-import org.apache.commons.lang3.time.DateUtils;
 
-import java.util.ArrayList;
+import java.io.Serializable;
 import java.util.Date;
-import java.util.List;
 
 @Data
 @TableName("skc_kline")
-public class Kline {
+public class Kline extends Model<Kline> {
 
     /**
      * 开盘时间
@@ -21,6 +20,14 @@ public class Kline {
      * 收盘时间
      */
     private Date endTime;
+    /**
+     * 时间间隔
+     */
+    private String interval;
+    /**
+     * 前收盘价
+     */
+    private String preEndPrice = "0.0000";
     /**
      * 开盘价
      */
@@ -40,29 +47,38 @@ public class Kline {
     /**
      * 成交量
      */
-    private String quantity = "0.0000";
+    private String totalQuantity = "0.0000";
     /**
      * 成交额
      */
     private String totalAmount = "0.0000";
     /**
+     * 主动买入成交量
+     */
+    private String activeQuantity = "0.0000";
+    /**
+     * 主动买入成交额
+     */
+    private String activeAmount = "0.0000";
+    /**
      * 成交笔数
      */
     private Integer transNum = 0;
 
+    private Date createTime;
+    private Date modifyTime;
+
+    @Override
+    protected Serializable pkVal() {
+        return null;
+    }
+
     public Kline() {
     }
 
-    public Kline(Date startTime, Date endTime) {
+    public Kline(Date startTime, Date endTime, KlineEum klineEum) {
         this.startTime = startTime;
         this.endTime = endTime;
-    }
-
-    public static void main(String[] args) {
-        Date now = new Date();
-        Kline kline = new Kline(DateUtils.addMinutes(now, -15), now);
-        List<Kline> klineList = new ArrayList<>();
-        klineList.add(kline);
-        System.out.printf(JSON.toJSONString(klineList));
+        this.interval = klineEum.getCode();
     }
 }
