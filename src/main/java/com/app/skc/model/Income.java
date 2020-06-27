@@ -25,6 +25,12 @@ public class Income extends Model <Income> {
      * 合约 id
      */
     private String contractId;
+
+    /**
+     * 收益日期：yyyyMMdd
+     */
+    private String dateAcct;
+
     /**
      * 静态收益
      */
@@ -42,6 +48,7 @@ public class Income extends Model <Income> {
      * 总收益
      */
     private BigDecimal total;
+
     /**
      * 创建时间
      */
