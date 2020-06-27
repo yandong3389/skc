@@ -50,16 +50,38 @@ public class ExchangeController {
 
     /**
      * 获取最新成交价格
+     *
      * @return date-日期 ; line-每分钟成交价 ,
      * 数组长度2440, 每分钟对应一个下标
      * 00:00对应line[0]
      * 23:59对应line[2339]
      *
      */
+    /**
+     * 获取最新成交价格
+     * @param interval  enum, 必填，间隔时间，[15m, 1d]，m -> 分钟；d -> 天；
+     * @param startTime  long, 非必填，开始时间；
+     * @param endTime long, 非必填，结束时间；
+     * @param limit int, 非必填，默认 500; 最大 1000.
+     * @return K线数据 , 示例:
+     * [
+     *     {
+     *         "startTime": 1593101422745, //开盘时间
+     *         "endTime": 1593102322745, //收盘时间
+     *         "startPrice": "0.0000", //开盘价
+     *         "endPrice": "0.0000", //收盘价
+     *         "maxPrice": "0.0000", //最高价
+     *         "minPrice": "0.0000", //最低价
+     *         "quantity": "0.0000", //成交量
+     *         "totalAmount": "0.0000", //成交额
+     *         "transNum": 0 //成交笔数
+     *     }
+     * ]
+     */
     @ApiOperation(value = "获取K线数据", notes = "获取K线数据")
     @GetMapping("/kline")
     @ResponseBody
-    public ResponseResult kline() {
+    public ResponseResult kline(String interval,Long startTime ,Long endTime , Integer limit) {
         return transactionService.kline();
     }
 

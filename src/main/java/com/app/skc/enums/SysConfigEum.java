@@ -9,6 +9,7 @@ public enum SysConfigEum {
     SKC_CASHOUT_FEE("SKC_CASHOUT_FEE", "SKC提现交易手续费"),
     USDT_CASHOUT_FEE("USDT_CASHOUT_FEE", "USDT提现交易手续费"),
     NEED_CASHOUT_VERIFY("NEED_CASHOUT_VERIFY", "提现交易是否需要审核"),
+    CONTRACT_DOUBLE("CONTRACT_DOUBLE", "合约倍率")
     ;
 
 
