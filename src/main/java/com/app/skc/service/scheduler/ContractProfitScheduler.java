@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.app.skc.mapper.TransactionMapper;
 import com.app.skc.mapper.WalletMapper;
+import com.app.skc.model.UserShareVO;
 import com.app.skc.service.ContractProfitService;
 import com.app.skc.service.system.ConfigService;
 import com.app.skc.utils.HttpClientUtil;
@@ -20,7 +21,6 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TreeMap;
 
 @Configuration
 @EnableScheduling
@@ -49,42 +49,42 @@ public class ContractProfitScheduler {
         logger.info("{}job开始...", LOG_PREFIX);
         // 1、过滤非job执行地址
         String curIpAdd = WebUtils.getHostAddress();
-//        if (!curIpAdd.equals(jobAddress)) {
-//            logger.info("{}非job执行地址[{}], 指定地址:[{}].", LOG_PREFIX, curIpAdd, jobAddress);
-//            return;
-//        }
+        if (!curIpAdd.equals(jobAddress)) {
+            logger.info("{}非job执行地址[{}], 指定地址:[{}].", LOG_PREFIX, curIpAdd, jobAddress);
+            return;
+        }
         // 2、获取分享合约用户树列表
-        List<TreeMap<String, String>> listUserTree = queryUserTreeList();
+        List<UserShareVO> userShareList = queryUserTreeList();
 
-        if (CollectionUtils.isEmpty(listUserTree)) {
+        if (CollectionUtils.isEmpty(userShareList)) {
             logger.info("{}分享合约用户树列表获取结果集为空，job结束.", LOG_PREFIX);
             return;
         }
-        for (TreeMap<String, String> userTreeMap : listUserTree) {
-            contractProfitService.userTreeTrans(userTreeMap);
+        for (UserShareVO userShare : userShareList) {
+            contractProfitService.userTreeTrans(userShare);
         }
         logger.info("{}job结束.", LOG_PREFIX);
     }
 
-    private List<TreeMap<String, String>> queryUserTreeList() {
-        List<TreeMap<String, String>> listUserTree = new ArrayList<>();
+    private List<UserShareVO> queryUserTreeList() {
+        List<UserShareVO> treeUserList = new ArrayList<>();
         String treeUsersRes = HttpClientUtil.sendGet(API_TREE_USERS);
         if (StringUtils.isBlank(treeUsersRes)) {
-            return listUserTree;
+            return treeUserList;
         }
         JSONObject jsonObj = JSONObject.parseObject(treeUsersRes);
         if (jsonObj == null) {
-            return listUserTree;
+            return treeUserList;
         }
         JSONArray tuDataJsonArray = jsonObj.getJSONArray("data");
         if (tuDataJsonArray != null && tuDataJsonArray.size() > 0) {
             for (int i = 0; i < tuDataJsonArray.size(); i++) {
                 JSONObject resultObject = tuDataJsonArray.getJSONObject(i);
-                TreeMap<String, String> userTreeMap = JSONObject.parseObject(resultObject.toJSONString(), TreeMap.class);
-                listUserTree.add(userTreeMap);
+                UserShareVO userShareVO = JSONObject.parseObject(resultObject.toJSONString(), UserShareVO.class);
+                treeUserList.add(userShareVO);
             }
         }
-        return listUserTree;
+        return treeUserList;
 
     }
 

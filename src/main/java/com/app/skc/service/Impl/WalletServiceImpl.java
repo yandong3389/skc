@@ -224,7 +224,18 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
         walletWrapper.eq("wallet_type", walletType);
         List<Wallet> walletList = walletMapper.selectList(walletWrapper);
         if (!CollectionUtils.isEmpty(walletList) && walletList.get(0) != null) {
-            return ResponseResult.success().setData(walletList.get(0).getBalAvail());
+            Wallet dbWallet = walletList.get(0);
+            Wallet wallet = new Wallet();
+            wallet.setUserId(userId);
+            wallet.setWalletType(walletType);
+            wallet.setWalletId(dbWallet.getWalletId());
+            wallet.setBalTotal(dbWallet.getBalTotal());
+            wallet.setBalAvail(dbWallet.getBalAvail());
+            wallet.setBalFreeze(dbWallet.getBalFreeze());
+            wallet.setComsumedContract(dbWallet.getComsumedContract());
+            wallet.setSurplusContract(dbWallet.getSurplusContract());
+            wallet.setModifyTime(dbWallet.getModifyTime());
+            return ResponseResult.success().setData(wallet);
         } else {
             return ResponseResult.fail(ApiErrEnum.USER_NOT_EXISTED);
         }
@@ -278,7 +289,6 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
         wallet.setWalletPath(walletFilePath);
         wallet.setBalAvail(init);
         wallet.setBalFreeze(init);
-        wallet.setBalReward(init);
         wallet.setBalTotal(init);
         wallet.setSurplusContract(init);
         wallet.setComsumedContract(init);

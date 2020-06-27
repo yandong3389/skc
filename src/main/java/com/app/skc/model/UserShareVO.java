@@ -6,8 +6,9 @@ import java.io.Serializable;
 import java.util.List;
 
 @Data
-public class TreeUserVO implements Serializable {
+public class UserShareVO implements Serializable {
     private String id;
+    private String level;
     private String name;
     private String password;
     private String mobilePhone;
@@ -16,6 +17,6 @@ public class TreeUserVO implements Serializable {
     private String partentId;
     private String tradePassword;
     private String gradeId;
-    private List<TreeUserVO> subUsers;
+    private List<UserShareVO> subUsers;
 
 }

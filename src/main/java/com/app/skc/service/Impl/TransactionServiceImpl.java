@@ -207,6 +207,8 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             entityWrapper.eq(SkcConstants.TRANS_STATUS, params.get(SkcConstants.TRANS_STATUS));
         }
         String transType = (String) params.get(SkcConstants.TRANS_TYPE);
+        params.remove("pageNum");
+        params.remove("pageSize");
         params.forEach((k, v) -> {
             if (!SkcConstants.TRANS_TYPE.equals(k)) {
                 entityWrapper.eq(k, v);

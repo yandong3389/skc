@@ -1,14 +1,14 @@
 package com.app.skc.service;
 
-import java.util.TreeMap;
+import com.app.skc.model.UserShareVO;
 
 public interface ContractProfitService {
 
     /**
      * 分享合约用户树收益处理
      *
-     * @param userTreeMap
+     * @param userShare
      */
-    public void userTreeTrans(TreeMap<String, String> userTreeMap);
+    public void userTreeTrans(UserShareVO userShare);
 
 }

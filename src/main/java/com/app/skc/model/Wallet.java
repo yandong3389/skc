@@ -33,7 +33,6 @@ public class Wallet extends Model<Wallet> {
     private BigDecimal balTotal;
     private BigDecimal balAvail;
     private BigDecimal balFreeze;
-    private BigDecimal balReward;
     private BigDecimal surplusContract;
     private BigDecimal comsumedContract;
     private Date createTime;
