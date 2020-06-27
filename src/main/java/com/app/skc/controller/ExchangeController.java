@@ -1,7 +1,10 @@
 package com.app.skc.controller;
 
 
+import com.app.skc.enums.ApiErrEnum;
+import com.app.skc.enums.KlineEum;
 import com.app.skc.enums.TransTypeEum;
+import com.app.skc.service.KlineService;
 import com.app.skc.service.TransactionService;
 import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
@@ -13,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,6 +36,9 @@ public class ExchangeController {
     private static final Logger logger = LoggerFactory.getLogger(ExchangeController.class);
 
     private final TransactionService transactionService;
+
+    @Autowired
+    private KlineService klineService;
 
     @Autowired
     public ExchangeController(TransactionService transactionService) {
@@ -59,7 +66,7 @@ public class ExchangeController {
      */
     /**
      * 获取最新成交价格
-     * @param interval  enum, 必填，间隔时间，[15m, 1d]，m -> 分钟；d -> 天；
+     * @param interval  string, 必填，间隔时间，[15m, 1d]，m -> 分钟；d -> 天；
      * @param startTime  long, 非必填，开始时间；
      * @param endTime long, 非必填，结束时间；
      * @param limit int, 非必填，默认 500; 最大 1000.
@@ -82,7 +89,21 @@ public class ExchangeController {
     @GetMapping("/kline")
     @ResponseBody
     public ResponseResult kline(String interval,Long startTime ,Long endTime , Integer limit) {
-        return transactionService.kline();
+        KlineEum klineEum = KlineEum.getByCode(interval);
+        if (klineEum == null){
+            return ResponseResult.fail(ApiErrEnum.REQ_PARAM_NOT_NULL.getCode(),"interval 参数不合法");
+        }
+        Date start = null;
+        Date end = null;
+        if (startTime != null)
+            start = new Date(startTime);
+        if (endTime != null)
+            end = new Date(endTime);
+        if (limit == null || limit <= 0)
+            limit = 500;
+        if (limit > 1000)
+            limit = 1000;
+        return klineService.kline(klineEum,start,end,limit);
     }
 
     /**

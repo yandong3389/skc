@@ -59,7 +59,7 @@ public class Transaction extends Model<Transaction> {
 
     private BigDecimal price;
 
-    private Integer quantity;
+    private BigDecimal quantity;
     /**
      * 交易类型（0-转账）
      */

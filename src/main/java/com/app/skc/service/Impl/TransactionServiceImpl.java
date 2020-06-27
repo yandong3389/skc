@@ -379,7 +379,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         if (toWallets.get(0).getBalAvail().compareTo(price.multiply(BigDecimal.valueOf(quantity))) < 0) {
             return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
         }
-        List<Transaction> transactions = exchangeCenter.buy(userId, price, quantity);
+        List<Transaction> transactions = exchangeCenter.buy(userId, price, BigDecimal.valueOf(quantity));
         result.setData(transactions);
         return result;
     }
@@ -401,7 +401,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         if (toWallets.get(0).getBalAvail().compareTo(price.multiply(BigDecimal.valueOf(quantity))) < 0) {
             return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
         }
-        List<Transaction> transactions = exchangeCenter.sell(userId, price, quantity);
+        List<Transaction> transactions = exchangeCenter.sell(userId, price, BigDecimal.valueOf(quantity));
         result.setData(transactions);
         return result;
     }

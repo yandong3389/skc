@@ -11,7 +11,6 @@ import com.app.skc.utils.RedisUtils;
 import com.app.skc.utils.SkcConstants;
 import com.app.skc.utils.SpringContextHolder;
 import com.baomidou.mybatisplus.mapper.EntityWrapper;
-import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -74,7 +73,7 @@ public class ExchangeCenter {
             }
             Exchange lastExchange = retList.get(retList.size() - 1);
             if (lastExchange.getPrice().equals(ex.getPrice())) {
-                lastExchange.setQuantity(lastExchange.getQuantity() + ex.getQuantity());
+                lastExchange.setQuantity(lastExchange.getQuantity().add(ex.getQuantity()));
             } else {
                 retList.add(ex);
             }
@@ -91,7 +90,7 @@ public class ExchangeCenter {
         return mergeList(strings);
     }
 
-    public List<Transaction> buy(String buyUserId, BigDecimal buyPrice, Integer buyQuantity) {
+    public List<Transaction> buy(String buyUserId, BigDecimal buyPrice, BigDecimal buyQuantity) {
         List<Transaction> transactionList = new ArrayList<>();
         Exchange exchange = new Exchange(buyUserId, TransTypeEum.BUY, buyPrice, buyQuantity);
         Transaction transaction = buyFirst(exchange);
@@ -102,7 +101,7 @@ public class ExchangeCenter {
         return transactionList;
     }
 
-    public List<Transaction> sell(String buyUserId, BigDecimal buyPrice, Integer sellQuantity) {
+    public List<Transaction> sell(String buyUserId, BigDecimal buyPrice, BigDecimal sellQuantity) {
         List<Transaction> transactionList = new ArrayList<>();
         Exchange exchange = new Exchange(buyUserId, TransTypeEum.SELL, buyPrice, sellQuantity);
         Transaction transaction = sellFirst(exchange);
@@ -157,11 +156,11 @@ public class ExchangeCenter {
 
     public List<Kline> kline(){
         kline = new ArrayList<>();
-        Date now = new Date();
-        Kline k1 = new Kline(DateUtils.addMinutes(now, -30), DateUtils.addMinutes(now, -15));
-        Kline k = new Kline(DateUtils.addMinutes(now, -15), now);
-        kline.add(k1);
-        kline.add(k);
+//        Date now = new Date();
+//        Kline k1 = new Kline(DateUtils.addMinutes(now, -30), DateUtils.addMinutes(now, -15));
+//        Kline k = new Kline(DateUtils.addMinutes(now, -15), now);
+//        kline.add(k1);
+//        kline.add(k);
         return kline;
     }
 
@@ -194,8 +193,8 @@ public class ExchangeCenter {
     }
 
     private Transaction buyFirst(Exchange buyExchange) {
-        Integer buyQuantity = buyExchange.getQuantity();
-        if (buyQuantity == 0)
+        BigDecimal buyQuantity = buyExchange.getQuantity();
+        if (buyQuantity.compareTo(BigDecimal.ZERO) <= 0)
             return null;
         String sellStr = redisUtils.lGetIndex(SELL_LEADS, 0);
         if (sellStr == null) {
@@ -204,32 +203,32 @@ public class ExchangeCenter {
         }
         Exchange sell = JSON.parseObject(sellStr,Exchange.class);
         BigDecimal sellPrice = sell.getPrice();
-        Integer sellQuantity = sell.getQuantity();
+        BigDecimal sellQuantity = sell.getQuantity();
         if (buyExchange.getPrice().compareTo(sellPrice) < 0) {
             insertBuy(buyExchange);
             return null;
         }
         lastPrice = sellPrice;
-        int transQuantity;
-        if (sellQuantity <= buyQuantity) {
-            buyExchange.setQuantity(buyQuantity - sellQuantity);
+        BigDecimal transQuantity;
+        if (buyQuantity.compareTo(sellQuantity) > 0) {
+            buyExchange.setQuantity(buyQuantity.subtract(sellQuantity));
             redisUtils.leftPop(SELL_LEADS);
             transQuantity = sellQuantity;
         } else {
-            buyExchange.setQuantity(0);
-            sell.setQuantity(sellQuantity - buyQuantity);
+            buyExchange.setQuantity(BigDecimal.ZERO);
+            sell.setQuantity(sellQuantity.subtract(buyQuantity));
             transQuantity = buyQuantity;
         }
         Transaction buyTrans = fillTransaction(buyExchange.getUserId(), sell.getUserId(), TransTypeEum.BUY, lastPrice, transQuantity);
-        Transaction sellTrans = fillTransaction(sell.getUserId(), buyExchange.getUserId(), TransTypeEum.SELL, lastPrice, transQuantity);
         buyTrans.insert();
-        sellTrans.insert();
         return buyTrans;
+//        Transaction sellTrans = fillTransaction(sell.getUserId(), buyExchange.getUserId(), TransTypeEum.SELL, lastPrice, transQuantity);
+//        sellTrans.insert();
     }
 
     private Transaction sellFirst(Exchange sellExchange) {
-        Integer sellQuantity = sellExchange.getQuantity();
-        if (sellQuantity == 0)
+        BigDecimal sellQuantity = sellExchange.getQuantity();
+        if (sellQuantity.compareTo(BigDecimal.ZERO) <= 0)
             return null;
         String buyStr = redisUtils.lGetIndex(BUYING_LEADS, 0);
         if (buyStr == null) {
@@ -238,28 +237,28 @@ public class ExchangeCenter {
         }
         Exchange buy = JSON.parseObject(buyStr,Exchange.class);
         BigDecimal buyPrice = buy.getPrice();
-        Integer buyQuantity = buy.getQuantity();
+        BigDecimal buyQuantity = buy.getQuantity();
         if (sellExchange.getPrice().compareTo(buyPrice) > 0) {
             insertSell(sellExchange);
             return null;
         }
         lastPrice = buyPrice;
-        int transQuantity;
-        if (buyQuantity <= sellQuantity) {
-            sellExchange.setQuantity(sellQuantity - buyQuantity);
+        BigDecimal transQuantity;
+        if (sellQuantity.compareTo(buyQuantity) > 0) {
+            sellExchange.setQuantity(sellQuantity.subtract(buyQuantity));
             redisUtils.leftPop(BUYING_LEADS);
             transQuantity = buyQuantity;
 
         } else {
-            sellExchange.setQuantity(0);
-            buy.setQuantity(buyQuantity - sellQuantity);
+            sellExchange.setQuantity(BigDecimal.ZERO);
+            buy.setQuantity(buyQuantity.subtract(sellQuantity));
             transQuantity = sellQuantity;
         }
         Transaction sellTrans = fillTransaction(sellExchange.getUserId(), buy.getUserId(), TransTypeEum.SELL, lastPrice, transQuantity);
-        Transaction buyTrans = fillTransaction(buy.getUserId(), sellExchange.getUserId(), TransTypeEum.BUY, lastPrice, transQuantity);
         sellTrans.insert();
-        buyTrans.insert();
         return sellTrans;
+//        Transaction buyTrans = fillTransaction(buy.getUserId(), sellExchange.getUserId(), TransTypeEum.BUY, lastPrice, transQuantity);
+//        buyTrans.insert();
     }
 
     private void insertBuy(Exchange buyExchange) {
@@ -296,7 +295,7 @@ public class ExchangeCenter {
         redisUtils.lSet(SELL_LEADS,JSON.toJSONString(sellExchange));
     }
 
-    private Transaction fillTransaction(String fromUserId, String toUserId, TransTypeEum transType, BigDecimal price, Integer quantity) {
+    private Transaction fillTransaction(String fromUserId, String toUserId, TransTypeEum transType, BigDecimal price, BigDecimal quantity) {
         String fromWalletType = transType.equals(TransTypeEum.BUY)?WalletEum.USDT.getCode():WalletEum.SK.getCode();
         String toWalletType = transType.equals(TransTypeEum.BUY)?WalletEum.SK.getCode():WalletEum.USDT.getCode();;
 
@@ -325,6 +324,7 @@ public class ExchangeCenter {
         transaction.setToUserId(toUserId);
         transaction.setPrice(price);
         transaction.setQuantity(quantity);
+        transaction.setFromAmount(price.multiply(quantity));
         transaction.setTransType(transType.getCode());
         transaction.setCreateTime(new Date());
         transaction.setModifyTime(new Date());

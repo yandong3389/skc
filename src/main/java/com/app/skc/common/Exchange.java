@@ -30,12 +30,12 @@ public class Exchange {
     /**
      * 挂单数量
      */
-    private Integer quantity;
+    private BigDecimal quantity;
 
     public Exchange() {
     }
 
-    public Exchange(String userId, TransTypeEum transType, BigDecimal price, Integer quantity) {
+    public Exchange(String userId, TransTypeEum transType, BigDecimal price, BigDecimal quantity) {
         this.userId = userId;
         this.price = price;
         this.quantity = quantity;
@@ -43,7 +43,7 @@ public class Exchange {
         this.entrustOrder = UUID.randomUUID().toString();
     }
 
-    public Exchange(String userId, TransTypeEum transType, BigDecimal price, Integer quantity, String entrustOrder) {
+    public Exchange(String userId, TransTypeEum transType, BigDecimal price, BigDecimal quantity, String entrustOrder) {
         this.userId = userId;
         this.price = price;
         this.quantity = quantity;

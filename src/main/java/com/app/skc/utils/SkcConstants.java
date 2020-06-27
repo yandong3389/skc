@@ -6,6 +6,7 @@ public class SkcConstants {
     public static final String PAGE_NUM = "pageNum";
     public static final String PAGE_SIZE = "pageSize";
     public static final String ADDRESS = "address";
+    public static final String INTERVAL = "`interval`";
     public static final String USER_ID = "user_id";
     public static final String FROM_USER_ID = "from_user_id";
     public static final String TO_USER_ID = "to_user_id";
@@ -19,5 +20,7 @@ public class SkcConstants {
     public static final String SYS_WALLET_FILE = "SYS_WALLET_FILE";
     public static final String SYS_WALLET_ADDRESS = "SYS_WALLET_ADDRESS";
     public static final String CREATE_TIME = "create_time";
+    public static final String END_TIME = "end_time";
+    public static final String START_TIME = "start_time";
 
 }
