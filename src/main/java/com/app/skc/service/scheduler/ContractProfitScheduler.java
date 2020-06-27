@@ -3,11 +3,9 @@ package com.app.skc.service.scheduler;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.app.skc.exception.BusinessException;
-import com.app.skc.mapper.TransactionMapper;
-import com.app.skc.mapper.WalletMapper;
 import com.app.skc.model.UserShareVO;
 import com.app.skc.service.ContractProfitService;
-import com.app.skc.service.system.ConfigService;
+import com.app.skc.utils.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,27 +29,18 @@ public class ContractProfitScheduler {
     // 用户伞下有效用户列表API
     @Value("#{'${contract.api-tree-users:http://www.skgame.top/v1/Trade/Get_TreeUsers}'}")
     private String API_TREE_USERS;
-    // 获取直推有效用户列表API
-    @Value("#{'${contract.api-direct-users:http://www.skgame.top/v1/Trade/Get_DirectUsers}'}")
-    private String API_DIRECT_USERS;
-    @Autowired
-    private WalletMapper walletMapper;
-    @Autowired
-    private ConfigService configService;
-    @Autowired
-    private TransactionMapper transactionMapper;
     @Autowired
     private ContractProfitService contractProfitService;
 
-    @Scheduled(cron = "0 0/3 * * * ?")
+    @Scheduled(cron = "0 0 1 * * ?")
     public void releaseProfit() {
         logger.info("{}job开始...", LOG_PREFIX);
         // 1、过滤非job执行地址
-//        String curIpAdd = WebUtils.getHostAddress();
-//        if (!curIpAdd.equals(jobAddress)) {
-//            logger.info("{}非job执行地址[{}], 指定地址:[{}].", LOG_PREFIX, curIpAdd, jobAddress);
-//            return;
-//        }
+        String curIpAdd = WebUtils.getHostAddress();
+        if (!curIpAdd.equals(jobAddress)) {
+            logger.info("{}非job执行地址[{}], 指定地址:[{}].", LOG_PREFIX, curIpAdd, jobAddress);
+            return;
+        }
         // 2、获取分享合约用户树列表
         List<UserShareVO> userShareList = queryUserTreeList();
 
