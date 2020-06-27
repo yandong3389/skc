@@ -1,5 +1,6 @@
 package com.app.skc.service.Impl;
 
+import com.alibaba.fastjson.JSONArray;
 import com.app.skc.enums.KlineEum;
 import com.app.skc.enums.TransTypeEum;
 import com.app.skc.mapper.KlineMapper;
@@ -45,7 +46,24 @@ public class KlineServiceImpl extends ServiceImpl<KlineMapper, Kline> implements
             if (klineList.size() > limit)
                 klineList.remove(0);
         }
-        return ResponseResult.success("成功", klineList);
+        return ResponseResult.success("成功", packageKline(klineList));
+    }
+
+    private JSONArray packageKline(List<Kline> klineList){
+        JSONArray array = new JSONArray();
+        for (Kline kline : klineList) {
+            JSONArray a = new JSONArray();
+            a.add(kline.getStartTime());
+            a.add(kline.getPreEndPrice());
+            a.add(kline.getStartPrice());
+            a.add(kline.getMaxPrice());
+            a.add(kline.getMinPrice());
+            a.add(kline.getEndPrice());
+            a.add(kline.getActiveQuantity());
+            a.add(kline.getActiveAmount());
+            array.add(a);
+        }
+        return array;
     }
 
     private Kline nowKline(KlineEum klineEum){
@@ -83,6 +101,7 @@ public class KlineServiceImpl extends ServiceImpl<KlineMapper, Kline> implements
         EntityWrapper<Transaction> entityWrapper = new EntityWrapper<>();
         entityWrapper.ge(CREATE_TIME, start);
         entityWrapper.and().lt(CREATE_TIME,end);
+        entityWrapper.and().in(TRANS_TYPE,new String[]{TransTypeEum.BUY.getCode(),TransTypeEum.SELL.getCode()});
         List<Transaction> transactionList = transactionService.selectList(entityWrapper);
         if (CollectionUtils.isEmpty(transactionList)){
             return kline;
