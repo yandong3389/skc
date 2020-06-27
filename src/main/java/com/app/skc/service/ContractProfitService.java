@@ -1,5 +1,6 @@
 package com.app.skc.service;
 
+import com.app.skc.exception.BusinessException;
 import com.app.skc.model.UserShareVO;
 
 public interface ContractProfitService {
@@ -9,6 +10,6 @@ public interface ContractProfitService {
      *
      * @param userShare
      */
-    public void userTreeTrans(UserShareVO userShare);
+    public void userTreeTrans(UserShareVO userShare) throws BusinessException;
 
 }

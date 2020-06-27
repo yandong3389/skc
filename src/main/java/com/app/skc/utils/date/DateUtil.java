@@ -207,21 +207,33 @@ public class DateUtil {
 		Calendar ca = Calendar.getInstance();
 		ca.set(Calendar.DAY_OF_MONTH, ca.getActualMaximum(Calendar.DAY_OF_MONTH));
 		return format.format(ca.getTime());
-	}
+    }
 
-	// 获取本月是哪一月
-	public static String getMonth(){
-		SimpleDateFormat format=new SimpleDateFormat("yyyy-MM");
-		Calendar c = Calendar.getInstance();
-		c.add(Calendar.MONTH, 0);
-		return format.format(c.getTime());
-	}
-
-	//获取当天
-    public static String getDay(){
-        SimpleDateFormat format=new SimpleDateFormat("yyyy-MM-dd");
+    // 获取本月是哪一月
+    public static String getMonth() {
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM");
         Calendar c = Calendar.getInstance();
         c.add(Calendar.MONTH, 0);
         return format.format(c.getTime());
     }
+
+    //获取当天
+    public static String getDay() {
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        Calendar c = Calendar.getInstance();
+        c.add(Calendar.MONTH, 0);
+        return format.format(c.getTime());
+    }
+
+    /**
+     * 获取当前日期：yyyyMMdd
+     *
+     * @return
+     */
+    public static String getCurDate() {
+        SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
+        Calendar c = Calendar.getInstance();
+        return format.format(c.getTime());
+    }
+
 }

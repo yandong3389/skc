@@ -2,6 +2,7 @@ package com.app.skc.service.scheduler;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.TransactionMapper;
 import com.app.skc.mapper.WalletMapper;
 import com.app.skc.model.UserShareVO;
@@ -25,7 +26,7 @@ import java.util.List;
 public class ContractProfitScheduler {
     private static final Logger logger = LoggerFactory.getLogger(ContractProfitScheduler.class);
     private static final String LOG_PREFIX = "[合约收益释放] - ";
-    @Value("#{'${contract.job-address:172.19.16.11}'}")
+    @Value("#{'${contract.job-address:172.19.16.12}'}")
     private String jobAddress;
     // 用户伞下有效用户列表API
     @Value("#{'${contract.api-tree-users:http://www.skgame.top/v1/Trade/Get_TreeUsers}'}")
@@ -59,7 +60,11 @@ public class ContractProfitScheduler {
             return;
         }
         for (UserShareVO userShare : userShareList) {
-            contractProfitService.userTreeTrans(userShare);
+            try {
+                contractProfitService.userTreeTrans(userShare);
+            } catch (BusinessException e) {
+                logger.error("{}收益分享树计算失败，根节点用户Id为[{}].", LOG_PREFIX, userShare.getId(), e);
+            }
         }
         logger.info("{}job结束.", LOG_PREFIX);
     }

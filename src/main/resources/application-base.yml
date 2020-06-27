@@ -101,6 +101,7 @@ web3j:
 recharge:
   local-address: 172.19.16.11
 contract:
-  job-address: 172.19.16.11
+  job-address: 172.19.16.12
+  api-grade-list: http://www.skgame.top/v1/Trade/Get_Grade_List
   api-tree-users: http://www.skgame.top/v1/Trade/Get_TreeUsers
   api-direct-users: http://www.skgame.top/v1/Trade/Get_DirectUsers
