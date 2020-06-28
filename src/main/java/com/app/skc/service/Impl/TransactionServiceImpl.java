@@ -5,7 +5,6 @@ import com.app.skc.common.ExchangeCenter;
 import com.app.skc.enums.*;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.TransactionMapper;
-import com.app.skc.mapper.WalletMapper;
 import com.app.skc.model.Transaction;
 import com.app.skc.model.Wallet;
 import com.app.skc.model.system.Config;
@@ -27,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
 import org.web3j.crypto.CipherException;
 import org.web3j.protocol.Web3j;
 
@@ -52,8 +50,6 @@ import static com.app.skc.enums.ApiErrEnum.NO_DEAL_PRICE;
 @Service("transactionService")
 public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Transaction> implements TransactionService {
     private static final Logger logger = LoggerFactory.getLogger(TransactionServiceImpl.class);
-    @Autowired
-    private WalletMapper walletMapper;
     @Autowired
     private TransactionMapper transactionMapper;
     @Autowired
@@ -91,7 +87,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         EntityWrapper<Wallet> fromWalletWrapper = new EntityWrapper<>();
         fromWalletWrapper.eq(SkcConstants.USER_ID, userId);
         fromWalletWrapper.eq(SkcConstants.WALLET_TYPE, walletType);
-        List<Wallet> fromWallets = walletMapper.selectList(fromWalletWrapper);
+        List<Wallet> fromWallets = walletService.selectList(fromWalletWrapper);
         Wallet fromWallet;
         if (fromWallets.size() > 0) {
             fromWallet = fromWallets.get(0);
@@ -102,7 +98,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         EntityWrapper<Wallet> toWalletWrapper = new EntityWrapper<>();
         toWalletWrapper.eq(SkcConstants.ADDRESS, toWalletAddress);
         toWalletWrapper.eq(SkcConstants.WALLET_TYPE, walletType);
-        List<Wallet> toWallets = walletMapper.selectList(toWalletWrapper);
+        List<Wallet> toWallets = walletService.selectList(toWalletWrapper);
         Wallet toWallet;
         if (toWallets.size() > 0) {
             toWallet = toWallets.get(0);
@@ -170,8 +166,8 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         transaction.setCreateTime(new Date());
         transaction.setModifyTime(new Date());
         transactionMapper.insert(transaction);
-        walletMapper.updateById(fromWallet);
-        walletMapper.updateById(toWallet);
+        walletService.updateById(fromWallet);
+        walletService.updateById(toWallet);
     }
 
     /**
@@ -277,7 +273,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         EntityWrapper<Wallet> fromWalletWrapper = new EntityWrapper<>();
         fromWalletWrapper.eq(SkcConstants.USER_ID, userId);
         fromWalletWrapper.eq(SkcConstants.WALLET_TYPE, walletType);
-        List<Wallet> fromWalletRes = walletMapper.selectList(fromWalletWrapper);
+        List<Wallet> fromWalletRes = walletService.selectList(fromWalletWrapper);
         Wallet fromWallet;
         //判断钱包是否存在
         if (fromWalletRes.size() > 0) {
@@ -334,7 +330,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             BigDecimal fromBalAvail = fromWallet.getBalAvail();
             fromWallet.setBalTotal(fromBalTotal.subtract(cashOutAmt).subtract(fee));
             fromWallet.setBalAvail(fromBalAvail.subtract(cashOutAmt).subtract(fee));
-            walletMapper.updateById(fromWallet);
+            walletService.updateById(fromWallet);
             logger.info("提现交易 - 钱包相关余额更新成功。");
             // 交易记录保存
             transaction.setTransHash(transHash);
@@ -361,47 +357,49 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         return null;
     }
 
-
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public ResponseResult buy(String userId, String priceStr, Integer quantity) {
+    public ResponseResult buy(String userId, String priceStr, BigDecimal quantity) {
         //获取到账钱包
-        EntityWrapper<Wallet> toWalletWrapper = new EntityWrapper<>();
-        toWalletWrapper.eq(SkcConstants.USER_ID, userId);
-        toWalletWrapper.eq(SkcConstants.WALLET_TYPE, WalletEum.USDT.getCode());
-        List<Wallet> toWallets = walletMapper.selectList(toWalletWrapper);
-        if (CollectionUtils.isEmpty(toWallets)){
+        Wallet wallet = walletService.getWallet(userId,WalletEum.USDT);
+        if (wallet == null) {
             return ResponseResult.fail(ApiErrEnum.WALLET_NOT_MAINTAINED);
         }
         //校验可用余额
-        ResponseResult result = ResponseResult.success();
         BigDecimal price = new BigDecimal(priceStr);
-        if (toWallets.get(0).getBalAvail().compareTo(price.multiply(BigDecimal.valueOf(quantity))) < 0) {
+        if (wallet.getBalAvail().compareTo(price.multiply(quantity)) < 0) {
             return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
         }
-        List<Transaction> transactions = exchangeCenter.buy(userId, price, BigDecimal.valueOf(quantity));
+        freezeBalance(wallet,price.multiply(quantity));
+        List<Transaction> transactions = exchangeCenter.buy(userId, price, quantity);
+        ResponseResult result = ResponseResult.success();
         result.setData(transactions);
         return result;
     }
 
+    private void freezeBalance(Wallet wallet , BigDecimal freeze){
+        wallet.setBalFreeze(wallet.getBalFreeze().add(freeze));
+        wallet.setBalAvail(wallet.getBalAvail().subtract(freeze));
+        wallet.setModifyTime(new Date());
+        walletService.updateById(wallet);
+    }
+
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public ResponseResult sell(String userId, String priceStr, Integer quantity) {
+    public ResponseResult sell(String userId, String priceStr, BigDecimal quantity) {
         //获取到账钱包
-        EntityWrapper<Wallet> toWalletWrapper = new EntityWrapper<>();
-        toWalletWrapper.eq(SkcConstants.USER_ID, userId);
-        toWalletWrapper.eq(SkcConstants.WALLET_TYPE, WalletEum.SK.getCode());
-        List<Wallet> toWallets = walletMapper.selectList(toWalletWrapper);
-        if (CollectionUtils.isEmpty(toWallets)){
+        Wallet wallet = walletService.getWallet(userId,WalletEum.SK);
+        if (wallet == null) {
             return ResponseResult.fail(ApiErrEnum.WALLET_NOT_MAINTAINED);
         }
         //校验可用余额
-        ResponseResult result = ResponseResult.success();
         BigDecimal price = new BigDecimal(priceStr);
-        if (toWallets.get(0).getBalAvail().compareTo(price.multiply(BigDecimal.valueOf(quantity))) < 0) {
+        if (wallet.getBalAvail().compareTo(quantity) < 0) {
             return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
         }
-        List<Transaction> transactions = exchangeCenter.sell(userId, price, BigDecimal.valueOf(quantity));
+        freezeBalance(wallet,quantity);
+        List<Transaction> transactions = exchangeCenter.sell(userId, price, quantity);
+        ResponseResult result = ResponseResult.success();
         result.setData(transactions);
         return result;
     }
@@ -426,7 +424,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
 
     @Override
     public ResponseResult price() {
-        BigDecimal price = exchangeCenter.price();
+        String price = exchangeCenter.price();
         if (price == null) {
             return ResponseResult.fail(NO_DEAL_PRICE);
         }
@@ -436,11 +434,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     @Override
     public ResponseResult getEntrust(String userId) {
         return ResponseResult.success("", exchangeCenter.getEntrust(userId));
-    }
-
-    @Override
-    public ResponseResult kline() {
-        return ResponseResult.success("成功",exchangeCenter.kline());
     }
 
     @Override

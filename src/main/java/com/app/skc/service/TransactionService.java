@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.service.IService;
 import org.web3j.crypto.CipherException;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -52,7 +53,7 @@ public interface TransactionService extends IService<Transaction> {
      * @param price    单价
      * @param quantity 数量
      */
-    ResponseResult buy(String userId, String price, Integer quantity);
+    ResponseResult buy(String userId, String price, BigDecimal quantity);
 
     /**
      * 卖出
@@ -61,7 +62,7 @@ public interface TransactionService extends IService<Transaction> {
      * @param price    单价
      * @param quantity 数量
      */
-    ResponseResult sell(String userId, String price, Integer quantity);
+    ResponseResult sell(String userId, String price, BigDecimal quantity);
 
     /**
      * 查询买入列表
@@ -82,11 +83,6 @@ public interface TransactionService extends IService<Transaction> {
      * 最新成交价
      */
     ResponseResult price();
-
-    /**
-     * 获取K线数据
-     */
-    ResponseResult kline();
 
     /**
      * 取消委托

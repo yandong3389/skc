@@ -1,5 +1,6 @@
 package com.app.skc.service;
 
+import com.app.skc.enums.WalletEum;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.model.Wallet;
 import com.app.skc.utils.viewbean.ResponseResult;
@@ -65,6 +66,15 @@ public interface WalletService extends IService<Wallet> {
      * @return
      */
     ResponseResult getAvailBal(String userId, String walletType);
+
+
+    /**
+     * 获取用户钱包
+     * @param userId
+     * @param walletType
+     * @return
+     */
+    Wallet getWallet(String userId, WalletEum walletType);
 
     /**
      * 获取用户钱包地址
