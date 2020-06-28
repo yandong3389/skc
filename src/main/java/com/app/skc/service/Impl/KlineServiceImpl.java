@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -30,7 +32,7 @@ public class KlineServiceImpl extends ServiceImpl<KlineMapper, Kline> implements
     private TransactionService transactionService;
 
     @Override
-    public ResponseResult kline(KlineEum klineEum, Date start, Date end, Integer limit) {
+    public ResponseResult kline(KlineEum klineEum, Date start, Date end, Integer limit, String type) {
         EntityWrapper<Kline> entityWrapper = new EntityWrapper<>();
         entityWrapper.eq(INTERVAL,klineEum.getCode());
         if (start != null)
@@ -46,21 +48,30 @@ public class KlineServiceImpl extends ServiceImpl<KlineMapper, Kline> implements
             if (klineList.size() > limit)
                 klineList.remove(0);
         }
-        return ResponseResult.success("成功", packageKline(klineList));
+        return ResponseResult.success("成功", packageKline(klineList, type));
     }
 
-    private JSONArray packageKline(List<Kline> klineList){
+    private JSONArray packageKline(List <Kline> klineList, String type) {
+        DateFormat format = null;
+        //格式化日 k 线
+        format = new SimpleDateFormat("yyyyMMdd");
         JSONArray array = new JSONArray();
         for (Kline kline : klineList) {
             JSONArray a = new JSONArray();
-            a.add(kline.getStartTime());
-            a.add(kline.getPreEndPrice());
-            a.add(kline.getStartPrice());
-            a.add(kline.getMaxPrice());
-            a.add(kline.getMinPrice());
-            a.add(kline.getEndPrice());
-            a.add(kline.getActiveQuantity());
-            a.add(kline.getActiveAmount());
+            a.add(Long.parseLong(format.format(kline.getStartTime())));
+            a.add(new BigDecimal(kline.getPreEndPrice()));
+            a.add(new BigDecimal(kline.getStartPrice()));
+            a.add(new BigDecimal(kline.getMaxPrice()));
+            a.add(new BigDecimal(kline.getMinPrice()));
+            a.add(new BigDecimal(kline.getEndPrice()));
+            a.add(new BigDecimal(kline.getActiveQuantity()));
+            a.add(new BigDecimal(kline.getActiveAmount()));
+            if (type.equals(KlineEum.M15.getCode())) {
+                String hour = kline.getStartTime().getHours() + "";
+                String min = kline.getStartTime().getMinutes() + "";
+                a.add(Long.parseLong(hour + min));
+
+            }
             array.add(a);
         }
         return array;

@@ -103,7 +103,7 @@ public class ExchangeController {
             limit = 500;
         if (limit > 1000)
             limit = 1000;
-        return klineService.kline(klineEum,start,end,limit);
+        return klineService.kline(klineEum, start, end, limit, klineEum.getCode());
     }
 
     /**
