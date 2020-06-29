@@ -1,16 +1,13 @@
 package com.app.skc.common;
 
 import com.alibaba.fastjson.JSON;
+import com.app.skc.enums.TransStatusEnum;
 import com.app.skc.enums.TransTypeEum;
 import com.app.skc.enums.WalletEum;
-import com.app.skc.mapper.WalletMapper;
-import com.app.skc.model.Kline;
 import com.app.skc.model.Transaction;
 import com.app.skc.model.Wallet;
+import com.app.skc.service.WalletService;
 import com.app.skc.utils.RedisUtils;
-import com.app.skc.utils.SkcConstants;
-import com.app.skc.utils.SpringContextHolder;
-import com.baomidou.mybatisplus.mapper.EntityWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -29,26 +26,16 @@ public class ExchangeCenter {
 
     private static final String BUYING_LEADS = "buyingLeads";
     private static final String SELL_LEADS = "sellLeads";
+    //最新成交价
+    private static final String LAST_PRICE = "lastPrice";
 
     @Autowired
     private RedisUtils redisUtils;
+    @Autowired
+    private WalletService walletService;
 
-    /**
-     * 当天K线数据
-     * line-每分钟成交价 ,
-     * 数组长度2440, 每分钟对应一个下标
-     * 00:00对应line[0]
-     * 23:59对应line[2339]
-     */
-    private List<Kline> kline;
-
-    /**
-     * 最新成交价
-     */
-    private BigDecimal lastPrice;
-
-    public BigDecimal price() {
-        return lastPrice;
+    public String price() {
+        return redisUtils.get(LAST_PRICE);
     }
 
     public List<Exchange> queryBuy() {
@@ -142,28 +129,6 @@ public class ExchangeCenter {
         return cancelBuyEntrust( entrustOrder) || cancelSellEntrust(entrustOrder);
     }
 
-    public void kline(int minute){
-//        if (kline == null || minute == 0){
-//            String[] line = new String[2440];
-//            Arrays.fill(line,"0.00");
-//            line[minute] = String.format("%.2f",lastPrice == null?0:lastPrice.doubleValue());
-//            kline = new Kline(DateUtils.truncate(new Date(), Calendar.DATE), line);
-//        }else {
-//            String[] line = kline.getLine();
-//            line[minute] = String.format("%.2f",lastPrice == null?0:lastPrice.doubleValue());
-//        }
-    }
-
-    public List<Kline> kline(){
-        kline = new ArrayList<>();
-//        Date now = new Date();
-//        Kline k1 = new Kline(DateUtils.addMinutes(now, -30), DateUtils.addMinutes(now, -15));
-//        Kline k = new Kline(DateUtils.addMinutes(now, -15), now);
-//        kline.add(k1);
-//        kline.add(k);
-        return kline;
-    }
-
     private boolean cancelBuyEntrust(String order){
         List<String> strings = redisUtils.lGet(BUYING_LEADS, 0, -1);
         if (CollectionUtils.isEmpty(strings))
@@ -172,6 +137,8 @@ public class ExchangeCenter {
             Exchange exchange = JSON.parseObject(string, Exchange.class);
             if (order.equals(exchange.getEntrustOrder())) {
                 redisUtils.lRemove(BUYING_LEADS, 1, string);
+                Wallet wallet = walletService.getWallet(exchange.getUserId(), WalletEum.USDT);
+                unfreezeBalance(wallet,exchange.getQuantity().multiply(exchange.getPrice()));
                 return true;
             }
         }
@@ -186,6 +153,8 @@ public class ExchangeCenter {
             Exchange exchange = JSON.parseObject(string, Exchange.class);
             if (order.equals(exchange.getEntrustOrder())) {
                 redisUtils.lRemove(SELL_LEADS, 1, string);
+                Wallet wallet = walletService.getWallet(exchange.getUserId(), WalletEum.SK);
+                unfreezeBalance(wallet,exchange.getQuantity());
                 return true;
             }
         }
@@ -208,7 +177,7 @@ public class ExchangeCenter {
             insertBuy(buyExchange);
             return null;
         }
-        lastPrice = sellPrice;
+        redisUtils.set(LAST_PRICE,String.format("%.4f",sellPrice));
         BigDecimal transQuantity;
         if (buyQuantity.compareTo(sellQuantity) > 0) {
             buyExchange.setQuantity(buyQuantity.subtract(sellQuantity));
@@ -219,11 +188,9 @@ public class ExchangeCenter {
             sell.setQuantity(sellQuantity.subtract(buyQuantity));
             transQuantity = buyQuantity;
         }
-        Transaction buyTrans = fillTransaction(buyExchange.getUserId(), sell.getUserId(), TransTypeEum.BUY, lastPrice, transQuantity);
+        Transaction buyTrans = fillTransaction(buyExchange.getUserId(), sell.getUserId(), TransTypeEum.BUY, sellPrice, transQuantity);
         buyTrans.insert();
         return buyTrans;
-//        Transaction sellTrans = fillTransaction(sell.getUserId(), buyExchange.getUserId(), TransTypeEum.SELL, lastPrice, transQuantity);
-//        sellTrans.insert();
     }
 
     private Transaction sellFirst(Exchange sellExchange) {
@@ -242,7 +209,7 @@ public class ExchangeCenter {
             insertSell(sellExchange);
             return null;
         }
-        lastPrice = buyPrice;
+        redisUtils.set(LAST_PRICE,String.format("%.4f",buyPrice));
         BigDecimal transQuantity;
         if (sellQuantity.compareTo(buyQuantity) > 0) {
             sellExchange.setQuantity(sellQuantity.subtract(buyQuantity));
@@ -254,11 +221,9 @@ public class ExchangeCenter {
             buy.setQuantity(buyQuantity.subtract(sellQuantity));
             transQuantity = sellQuantity;
         }
-        Transaction sellTrans = fillTransaction(sellExchange.getUserId(), buy.getUserId(), TransTypeEum.SELL, lastPrice, transQuantity);
+        Transaction sellTrans = fillTransaction(sellExchange.getUserId(), buy.getUserId(), TransTypeEum.SELL, buyPrice, transQuantity);
         sellTrans.insert();
         return sellTrans;
-//        Transaction buyTrans = fillTransaction(buy.getUserId(), sellExchange.getUserId(), TransTypeEum.BUY, lastPrice, transQuantity);
-//        buyTrans.insert();
     }
 
     private void insertBuy(Exchange buyExchange) {
@@ -296,38 +261,66 @@ public class ExchangeCenter {
     }
 
     private Transaction fillTransaction(String fromUserId, String toUserId, TransTypeEum transType, BigDecimal price, BigDecimal quantity) {
-        String fromWalletType = transType.equals(TransTypeEum.BUY)?WalletEum.USDT.getCode():WalletEum.SK.getCode();
-        String toWalletType = transType.equals(TransTypeEum.BUY)?WalletEum.SK.getCode():WalletEum.USDT.getCode();;
+        String buUser = transType.equals(TransTypeEum.BUY)?fromUserId:toUserId;
+        String sellUser = transType.equals(TransTypeEum.BUY)?toUserId:fromUserId;
+        dealBuy(buUser,price,quantity);
+        dealSell(sellUser,price,quantity);
 
-        WalletMapper walletMapper = SpringContextHolder.applicationContext.getBean(WalletMapper.class);
-        EntityWrapper<Wallet> fromWalletWrapper = new EntityWrapper<>();
-        fromWalletWrapper.eq(SkcConstants.USER_ID, fromUserId);
-        fromWalletWrapper.eq(SkcConstants.WALLET_TYPE, fromWalletType);
-        List<Wallet> fromWallets = walletMapper.selectList(fromWalletWrapper);
-
-        EntityWrapper<Wallet> toWalletWrapper = new EntityWrapper<>();
-        toWalletWrapper.eq(SkcConstants.USER_ID, toUserId);
-        toWalletWrapper.eq(SkcConstants.WALLET_TYPE, toWalletType);
-        List<Wallet> toWallets = walletMapper.selectList(toWalletWrapper);
-
+        WalletEum fromWalletType = transType.equals(TransTypeEum.BUY)?WalletEum.USDT:WalletEum.SK;
+        WalletEum toWalletType = transType.equals(TransTypeEum.BUY)?WalletEum.SK:WalletEum.USDT;
+        BigDecimal fromAmount = transType.equals(TransTypeEum.BUY)?price.multiply(quantity):quantity;
+        BigDecimal toAmount = transType.equals(TransTypeEum.BUY)?quantity:price.multiply(quantity);
+        Wallet fromWallet = walletService.getWallet(fromUserId,fromWalletType);
+        Wallet toWallet = walletService.getWallet(toUserId,toWalletType);
         Transaction transaction = new Transaction();
-        if (!CollectionUtils.isEmpty(fromWallets)){
-            transaction.setFromWalletAddress(fromWallets.get(0).getAddress());
+        if (fromWallet != null){
+            transaction.setFromWalletAddress(fromWallet.getAddress());
         }
-        if (!CollectionUtils.isEmpty(toWallets)){
-            transaction.setToWalletAddress(toWallets.get(0).getAddress());
+        if (toWallet != null){
+            transaction.setToWalletAddress(toWallet.getAddress());
         }
-        transaction.setFromWalletType(fromWalletType);
-        transaction.setFromWalletType(toWalletType);
+        transaction.setFromWalletType(fromWalletType.getCode());
+        transaction.setFromWalletType(toWalletType.getCode());
         transaction.setTransId(UUID.randomUUID().toString());
         transaction.setFromUserId(fromUserId);
         transaction.setToUserId(toUserId);
         transaction.setPrice(price);
         transaction.setQuantity(quantity);
-        transaction.setFromAmount(price.multiply(quantity));
+        transaction.setFromAmount(fromAmount);
+        transaction.setToAmount(toAmount);
         transaction.setTransType(transType.getCode());
+        transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
         transaction.setCreateTime(new Date());
         transaction.setModifyTime(new Date());
         return transaction;
+    }
+
+    private void dealBuy(String userId, BigDecimal price ,BigDecimal quantity){
+        Wallet subtractWallet = walletService.getWallet(userId, WalletEum.USDT);
+        subtractWallet.setBalFreeze(subtractWallet.getBalFreeze().subtract(price.multiply(quantity)));
+        subtractWallet.setBalTotal(subtractWallet.getBalTotal().subtract(price.multiply(quantity)));
+        walletService.updateById(subtractWallet);
+        Wallet addWallet = walletService.getWallet(userId, WalletEum.SK);
+        addWallet.setBalTotal(addWallet.getBalTotal().add(quantity));
+        addWallet.setBalAvail(addWallet.getBalAvail().add(quantity));
+        walletService.updateById(addWallet);
+    }
+
+    private void dealSell(String userId, BigDecimal price ,BigDecimal quantity){
+        Wallet addWallet = walletService.getWallet(userId, WalletEum.USDT);
+        addWallet.setBalTotal(addWallet.getBalTotal().add(price.multiply(quantity)));
+        addWallet.setBalAvail(addWallet.getBalAvail().add(price.multiply(quantity)));
+        walletService.updateById(addWallet);
+        Wallet subtractWallet = walletService.getWallet(userId, WalletEum.SK);
+        subtractWallet.setBalFreeze(subtractWallet.getBalFreeze().subtract(quantity));
+        subtractWallet.setBalTotal(subtractWallet.getBalTotal().subtract(quantity));
+        walletService.updateById(subtractWallet);
+    }
+
+    private void unfreezeBalance(Wallet wallet, BigDecimal amount){
+        wallet.setBalAvail(wallet.getBalAvail().add(amount));
+        wallet.setBalFreeze(wallet.getBalFreeze().subtract(amount));
+        wallet.setModifyTime(new Date());
+        walletService.updateById(wallet);
     }
 }

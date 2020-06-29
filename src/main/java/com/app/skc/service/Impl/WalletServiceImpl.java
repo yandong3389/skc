@@ -241,6 +241,18 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
         }
     }
 
+    @Override
+    public Wallet getWallet(String userId, WalletEum walletType) {
+        EntityWrapper<Wallet> toWalletWrapper = new EntityWrapper<>();
+        toWalletWrapper.eq(SkcConstants.USER_ID, userId);
+        toWalletWrapper.eq(SkcConstants.WALLET_TYPE, walletType.getCode());
+        List<Wallet> toWallets = walletMapper.selectList(toWalletWrapper);
+        if (CollectionUtils.isEmpty(toWallets)){
+            return null;
+        }
+        return toWallets.get(0);
+    }
+
     /**
      * 获取用户所有钱包地址
      *

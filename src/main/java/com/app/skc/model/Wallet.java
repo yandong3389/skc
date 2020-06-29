@@ -40,7 +40,7 @@ public class Wallet extends Model<Wallet> {
 
     @Override
     protected Serializable pkVal() {
-        return null;
+        return walletId;
     }
 
 }

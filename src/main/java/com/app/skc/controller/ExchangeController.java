@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -55,15 +56,6 @@ public class ExchangeController {
         return transactionService.price();
     }
 
-    /**
-     * 获取最新成交价格
-     *
-     * @return date-日期 ; line-每分钟成交价 ,
-     * 数组长度2440, 每分钟对应一个下标
-     * 00:00对应line[0]
-     * 23:59对应line[2339]
-     *
-     */
     /**
      * 获取最新成交价格
      * @param interval  string, 必填，间隔时间，[15m, 1d]，m -> 分钟；d -> 天；
@@ -156,9 +148,10 @@ public class ExchangeController {
     public ResponseResult orderBuy(
             @RequestParam String userId,
             @RequestParam String price,
-            @RequestParam Integer quantity) {
+            @RequestParam String quantity) {
         try {
-            return transactionService.buy(userId, price, quantity);
+            BigDecimal bigDecimal = BigDecimal.valueOf(Double.parseDouble(quantity));
+            return transactionService.buy(userId, price, bigDecimal);
         } catch (Exception e) {
             logger.error("买入异常", e);
             return ResponseResult.fail("ERR500", e.getMessage());
@@ -177,9 +170,10 @@ public class ExchangeController {
     public ResponseResult orderSell(
             @RequestParam String userId,
             @RequestParam String price,
-            @RequestParam Integer quantity) {
+            @RequestParam String quantity) {
         try {
-            return transactionService.sell(userId, price, quantity);
+            BigDecimal bigDecimal = BigDecimal.valueOf(Double.parseDouble(quantity));
+            return transactionService.sell(userId, price, bigDecimal);
         } catch (Exception e) {
             logger.error("卖出异常", e);
             return ResponseResult.fail("ERR500", e.getMessage());

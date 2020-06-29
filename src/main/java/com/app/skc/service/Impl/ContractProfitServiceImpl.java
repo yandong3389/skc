@@ -309,10 +309,11 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         }
         // 钱包更新
         BigDecimal totalProfit = staticProfit.add(shareProfit).add(mngProfit);
+        BigDecimal balChange = totalProfit.multiply(getCurExRate());
         contractWallet.setComsumedContract(contractWallet.getComsumedContract().add(totalProfit));
         contractWallet.setSurplusContract(contractWallet.getSurplusContract().subtract(totalProfit));
-        contractWallet.setBalTotal(contractWallet.getBalTotal().add(totalProfit));
-        contractWallet.setBalAvail(contractWallet.getBalAvail().add(totalProfit));
+        contractWallet.setBalTotal(contractWallet.getBalTotal().add(balChange));
+        contractWallet.setBalAvail(contractWallet.getBalAvail().add(balChange));
         contractWallet.setModifyTime(new Date());
         walletMapper.updateById(contractWallet);
         // 当日收益记录插入
@@ -502,6 +503,16 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                 fulfillAllSubUserList(allSubUserList, eachSubUser);
             }
         }
+    }
+
+    /**
+     * 获取U对SK的汇率，如1U=10SK时，汇率为10
+     *
+     * @return
+     */
+    private BigDecimal getCurExRate() {
+        // TODO
+        return new BigDecimal(10);
     }
 
 }
