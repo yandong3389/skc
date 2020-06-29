@@ -7,12 +7,14 @@ import com.app.skc.enums.TransTypeEum;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.TransactionMapper;
 import com.app.skc.model.Contract;
+import com.app.skc.model.Income;
 import com.app.skc.model.Transaction;
 import com.app.skc.service.ContractService;
 import com.app.skc.utils.SkcConstants;
 import com.app.skc.utils.viewbean.Page;
 import com.app.skc.utils.viewbean.ResponseResult;
 import com.github.pagehelper.PageInfo;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -124,6 +126,17 @@ public class ContractController {
             logger.error(be.getMessage());
             return ResponseResult.fail();
         }
+    }
+
+    @GetMapping("/income")
+    public ResponseResult income(String userId, Page page) throws BusinessException {
+        logger.info("{}开始查询用户收益参数 userId = [{}],Page =[{}]", LOG_PREFIX, userId, JSON.toJSONString(page));
+        if (StringUtils.isBlank(userId)) {
+            throw new BusinessException("用户 Id不能为空");
+        }
+        //查询收益
+        List <Income> list = contractService.getIncome(userId, page);
+        return ResponseResult.success("查询成功", new PageInfo <Income>(list));
     }
 
 

@@ -16,6 +16,6 @@ import java.util.Date;
  * @since 2020-02-05
  */
 public interface KlineService extends IService<Kline> {
-    ResponseResult kline(KlineEum klineEum, Date start, Date end, Integer limit);
+    ResponseResult kline(KlineEum klineEum, Date start, Date end, Integer limit, String type);
     Kline fillKline(KlineEum klineEum, Date start, Date end);
 }

@@ -6,17 +6,21 @@ import com.app.skc.enums.TransTypeEum;
 import com.app.skc.enums.WalletEum;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.ContractMapper;
+import com.app.skc.mapper.IncomeMapper;
 import com.app.skc.mapper.TransactionMapper;
 import com.app.skc.mapper.WalletMapper;
 import com.app.skc.model.Contract;
+import com.app.skc.model.Income;
 import com.app.skc.model.Transaction;
 import com.app.skc.model.Wallet;
 import com.app.skc.service.ContractService;
 import com.app.skc.service.system.ConfigService;
 import com.app.skc.utils.BaseUtils;
 import com.app.skc.utils.SkcConstants;
+import com.app.skc.utils.viewbean.Page;
 import com.baomidou.mybatisplus.mapper.EntityWrapper;
 import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.github.pagehelper.PageHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +45,8 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
     WalletMapper walletMapper;
     @Autowired
     ConfigService configService;
+    @Autowired
+    IncomeMapper incomeMapper;
 
     @Transactional(rollbackFor = BusinessException.class)
     @Override
@@ -137,6 +143,25 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
             performance = performance.add(queryPerformance(map, userId));
         }
         return performance;
+    }
+
+    /**
+     * 查询收益列表
+     *
+     * @param userId
+     * @param page
+     * @return
+     */
+    @Override
+    public List <Income> getIncome(String userId, Page page) {
+        if (page == null) {
+            page = new Page();
+        }
+        PageHelper.startPage(page);
+        EntityWrapper <Income> entityWrapper = new EntityWrapper <>();
+        entityWrapper.eq("userId", userId);
+        List <Income> list = incomeMapper.selectList(entityWrapper);
+        return list;
     }
 
     private BigDecimal queryPerformance(Map map, String userId) {

@@ -68,9 +68,11 @@ public class KlineServiceImpl extends ServiceImpl<KlineMapper, Kline> implements
             a.add(new BigDecimal(kline.getActiveAmount()));
             if (type.equals(KlineEum.M15.getCode())) {
                 String hour = kline.getStartTime().getHours() + "";
+                if (hour.equals("0")) {
+                    hour = "";
+                }
                 String min = kline.getStartTime().getMinutes() + "";
                 a.add(Long.parseLong(hour + min));
-
             }
             array.add(a);
         }
