@@ -227,16 +227,17 @@ public class ExchangeCenter {
     }
 
     private void insertBuy(Exchange buyExchange) {
-        long size = redisUtils.lGetListSize(BUYING_LEADS);
-        if (size == 0) {
+        List<String> strings = redisUtils.lGet(BUYING_LEADS, 0, -1);
+        if (strings == null) {
             redisUtils.lSet(BUYING_LEADS,JSON.toJSONString(buyExchange));
             return;
         }
-        for (int i = 0; i < size; i++) {
-            String buy = redisUtils.lGetIndex(BUYING_LEADS, i);
-            Exchange exchange = JSON.parseObject(buy, Exchange.class);
+        for (int i=0; i< strings.size();i++) {
+            Exchange exchange = JSON.parseObject(strings.get(i), Exchange.class);
             if (exchange.getPrice().compareTo(buyExchange.getPrice()) < 0) {
-                redisUtils.rightPush(BUYING_LEADS, buy, JSON.toJSONString(buyExchange));
+                strings.add(i, JSON.toJSONString(buyExchange));
+                redisUtils.del(BUYING_LEADS);
+                redisUtils.lSet(BUYING_LEADS,strings);
                 return;
             }
         }
@@ -244,16 +245,17 @@ public class ExchangeCenter {
     }
 
     private void insertSell(Exchange sellExchange) {
-        long size = redisUtils.lGetListSize(SELL_LEADS);
-        if (size == 0) {
+        List<String> strings = redisUtils.lGet(SELL_LEADS, 0, -1);
+        if (strings == null) {
             redisUtils.lSet(SELL_LEADS,JSON.toJSONString(sellExchange));
             return;
         }
-        for (int i = 0; i < size; i++) {
-            String sell = redisUtils.lGetIndex(SELL_LEADS, i);
-            Exchange exchange = JSON.parseObject(sell, Exchange.class);
+        for (int i = 0; i < strings.size(); i++) {
+            Exchange exchange = JSON.parseObject(strings.get(i), Exchange.class);
             if (exchange.getPrice().compareTo(sellExchange.getPrice()) > 0) {
-                redisUtils.rightPush(BUYING_LEADS, sell, JSON.toJSONString(sellExchange));
+                strings.add(i, JSON.toJSONString(sellExchange));
+                redisUtils.del(SELL_LEADS);
+                redisUtils.lSet(SELL_LEADS,strings);
                 return;
             }
         }
