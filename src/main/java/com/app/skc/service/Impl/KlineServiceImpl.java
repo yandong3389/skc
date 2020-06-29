@@ -8,6 +8,7 @@ import com.app.skc.model.Kline;
 import com.app.skc.model.Transaction;
 import com.app.skc.service.KlineService;
 import com.app.skc.service.TransactionService;
+import com.app.skc.utils.BaseUtils;
 import com.app.skc.utils.viewbean.ResponseResult;
 import com.baomidou.mybatisplus.mapper.EntityWrapper;
 import com.baomidou.mybatisplus.service.impl.ServiceImpl;
@@ -67,12 +68,7 @@ public class KlineServiceImpl extends ServiceImpl<KlineMapper, Kline> implements
             a.add(new BigDecimal(kline.getActiveQuantity()));
             a.add(new BigDecimal(kline.getActiveAmount()));
             if (type.equals(KlineEum.M15.getCode())) {
-                String hour = kline.getStartTime().getHours() + "";
-                if (hour.equals("0")) {
-                    hour = "";
-                }
-                String min = kline.getStartTime().getMinutes() + "";
-                a.add(Long.parseLong(hour + min));
+                a.add(BaseUtils.kLineDate(kline.getStartTime()));
             }
             array.add(a);
         }
@@ -163,4 +159,5 @@ public class KlineServiceImpl extends ServiceImpl<KlineMapper, Kline> implements
         }
         return klineList.get(0);
     }
+
 }

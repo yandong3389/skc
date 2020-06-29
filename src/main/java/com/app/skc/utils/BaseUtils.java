@@ -1,5 +1,8 @@
 package com.app.skc.utils;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.UUID;
 
 public class BaseUtils {
@@ -31,5 +34,14 @@ public class BaseUtils {
      */
     public static boolean checkEmpty(Object o){
         return o != null && !"".equals(o);
+    }
+
+    /**
+     * k线 date 格式
+     */
+    public static Long kLineDate(Date date) {
+        DateFormat format = new SimpleDateFormat("yyyyMMddHHmm");
+        String time = format.format(date).substring(8, 12);
+        return Long.parseLong(time);
     }
 }
