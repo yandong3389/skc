@@ -13,10 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * 交易所交易数据中心
@@ -74,7 +71,9 @@ public class ExchangeCenter {
             return null;
         }
         List<String> strings = redisUtils.lGet(SELL_LEADS, 0, -1);
-        return mergeList(strings);
+        List<Exchange> exchanges = mergeList(strings);
+        Collections.reverse(exchanges);
+        return exchanges;
     }
 
     public List<Transaction> buy(String buyUserId, BigDecimal buyPrice, BigDecimal buyQuantity) {
@@ -282,7 +281,7 @@ public class ExchangeCenter {
             transaction.setToWalletAddress(toWallet.getAddress());
         }
         transaction.setFromWalletType(fromWalletType.getCode());
-        transaction.setFromWalletType(toWalletType.getCode());
+        transaction.setToWalletType(toWalletType.getCode());
         transaction.setTransId(UUID.randomUUID().toString());
         transaction.setFromUserId(fromUserId);
         transaction.setToUserId(toUserId);
