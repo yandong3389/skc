@@ -59,7 +59,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void userTreeTrans(UserShareVO userShare) throws BusinessException {
+    public void userTreeTrans(UserShareVO userShare) {
         // 1、初始数据准备
         Map<String, Income> incomeMap = new HashMap<>();
         Map<String, UserShareVO> allShareMap = new HashMap<>();
@@ -88,8 +88,10 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                     incomeMap.put(user.getId(), contractIncome);
                     continue;
                 } else {
+                    String contrInId = BaseUtils.get64UUID();
+                    logger.info("{}新增合约收益记录，userName为[{}], 收益id为[{}]", LOG_PREFIX, user.getName(), contrInId);
                     contractIncome = new Income();
-                    contractIncome.setId(BaseUtils.get64UUID());
+                    contractIncome.setId(contrInId);
                     contractIncome.setUserId(user.getId());
                     contractIncome.setContractId(contractTrans.getTransId());
                     incomeMap.put(user.getId(), contractIncome);
@@ -110,7 +112,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                     totalContract = totalContract.add(allShareTrans.get(userId).getPrice());
                 }
                 if (directShare >= 10 || totalContract.compareTo(new BigDecimal(80000)) >= 0) {
-                    BigDecimal mngRate = getMngRate(userShare, directSubUserList, directShare, totalContract);
+                    BigDecimal mngRate = getMngRate(directSubUserList, directShare, totalContract);
                     BigDecimal totalProfit = BigDecimal.ZERO;
                     for (String userId : incomeMap.keySet()) {
                         Income eachIncome = incomeMap.get(userId);
@@ -141,14 +143,13 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     /**
      * 获取社区收益比例
      *
-     * @param userShare
      * @param subUserShareList
      * @param directShare
      * @param totalContract
      * @return
      * @throws BusinessException
      */
-    private BigDecimal getMngRate(UserShareVO userShare, List<UserShareVO> subUserShareList, int directShare, BigDecimal totalContract) throws BusinessException {
+    private BigDecimal getMngRate(List<UserShareVO> subUserShareList, int directShare, BigDecimal totalContract) {
         Config mngRateConfig;
         int bronzeCommCnt = 0;
         int goldCommCnt = 0;
@@ -156,7 +157,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         int kingCommCnt = 0;
         for (UserShareVO userShareVO : subUserShareList) {
             Map<String, List<UserShareVO>> eachCommGradeMap = new HashMap<>();
-            fulfillAllGradeMap(eachCommGradeMap, userShare);
+            fulfillAllGradeMap(eachCommGradeMap, userShareVO);
             if (!CollectionUtils.isEmpty(eachCommGradeMap.get("king"))) {
                 ++kingCommCnt;
                 continue;
@@ -305,7 +306,8 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
             contractIncome.setStaticIn(contractWallet.getSurplusContract());
             contractTrans.setTransStatus(TransStatusEnum.UNEFFECT.getCode());
             contractTrans.setModifyTime(new Date());
-            transMapper.updateById(contractTrans);
+            // TODO
+//            transMapper.updateById(contractTrans);
         }
         // 钱包更新
         BigDecimal totalProfit = staticProfit.add(shareProfit).add(mngProfit);
@@ -315,7 +317,8 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         contractWallet.setBalTotal(contractWallet.getBalTotal().add(balChange));
         contractWallet.setBalAvail(contractWallet.getBalAvail().add(balChange));
         contractWallet.setModifyTime(new Date());
-        walletMapper.updateById(contractWallet);
+        // TODO
+//        walletMapper.updateById(contractWallet);
         // 当日收益记录插入
         contractIncome.setStaticIn(staticProfit);
         contractIncome.setShareIn(shareProfit);
@@ -333,13 +336,14 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      */
     private Income getContractIncome(UserShareVO userShareVO) {
         EntityWrapper<Income> incomeWrapper = new EntityWrapper<>();
+        String dateAcct = DateUtil.getCurDate();
         incomeWrapper.eq("userId", userShareVO.getId());
-        incomeWrapper.eq("dateAcct", DateUtil.getCurDate());
+        incomeWrapper.eq("dateAcct", dateAcct);
         List<Income> incomeList = incomeMapper.selectList(incomeWrapper);
         if (CollectionUtils.isEmpty(incomeList)) {
             return null;
         } else {
-            logger.info("{}当前用户[{}]合约记录[{}]收益已释放，跳过收益计算。", LOG_PREFIX, userShareVO.getId(), DateUtil.getCurDate());
+            logger.info("{}当前用户[{}]合约记录[{}]收益已释放，跳过收益计算。", LOG_PREFIX, userShareVO.getId(), dateAcct);
             return incomeList.get(0);
         }
 
@@ -374,7 +378,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      */
     private Transaction getContractTrans(UserShareVO userShareVO) {
         EntityWrapper<Transaction> transWrapper = new EntityWrapper<>();
-        transWrapper.eq("from_user_id", userShareVO.getId());
+        transWrapper.eq("from_user_id", userShareVO.getName());
         transWrapper.eq("trans_type", TransTypeEum.CONTRACT.getCode());
         transWrapper.eq("trans_status", TransStatusEnum.EFFECT.getCode());
         List<Transaction> transList = transMapper.selectList(transWrapper);
@@ -448,10 +452,11 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      * @param allGradeMap
      * @param userShare
      */
-    private void fulfillAllGradeMap(Map<String, List<UserShareVO>> allGradeMap, UserShareVO userShare) throws BusinessException {
+    private void fulfillAllGradeMap(Map<String, List<UserShareVO>> allGradeMap, UserShareVO userShare) {
         String gradeCode = getGradeCode(userShare.getGradeId());
         if (StringUtils.isBlank(gradeCode)) {
-            throw new BusinessException("用户等级API调用失败或未知等级ID");
+            gradeCode = userShare.getGradeId();
+            //throw new BusinessException("用户等级API调用失败或未知等级ID");
         }
         List<UserShareVO> userGradeList = allGradeMap.get(gradeCode);
         if (userGradeList == null) {
