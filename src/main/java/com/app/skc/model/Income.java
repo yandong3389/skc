@@ -15,7 +15,7 @@ import java.util.Date;
  */
 @Data
 @TableName("skc_income")
-public class Income extends Model <Income> {
+public class Income extends Model<Income> {
     @Id
     private String id;
     /**
@@ -23,6 +23,11 @@ public class Income extends Model <Income> {
      */
     @TableField(value = "userId")
     private String userId;
+    /**
+     * 用户名称
+     */
+    @TableField(value = "userName")
+    private String userName;
     /**
      * 合约 id
      */

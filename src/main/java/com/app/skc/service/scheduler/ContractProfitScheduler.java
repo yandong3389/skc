@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.model.UserShareVO;
 import com.app.skc.service.ContractProfitService;
+import com.app.skc.utils.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,16 +31,16 @@ public class ContractProfitScheduler {
     @Autowired
     private ContractProfitService contractProfitService;
 
-    @Scheduled(cron = "0 5/10 * * * ?")
+    @Scheduled(cron = "0 0/2 * * * ?")
     public void releaseProfit() {
         logger.info("{}job开始...", LOG_PREFIX);
+        long startTime = System.currentTimeMillis();
         // 1、过滤非job执行地址
-        // TODO
-//        String curIpAdd = WebUtils.getHostAddress();
-//        if (!curIpAdd.equals(jobAddress)) {
-//            logger.info("{}非job执行地址[{}], 指定地址:[{}].", LOG_PREFIX, curIpAdd, jobAddress);
-//            return;
-//        }
+        String curIpAdd = WebUtils.getHostAddress();
+        if (!curIpAdd.equals(jobAddress)) {
+            logger.info("{}非job执行地址[{}], 指定地址:[{}].", LOG_PREFIX, curIpAdd, jobAddress);
+            return;
+        }
         // 2、获取分享合约用户树列表
         List<UserShareVO> userShareList = queryUserTreeList();
 
@@ -54,29 +55,18 @@ public class ContractProfitScheduler {
                 logger.error("{}收益分享树计算失败，根节点用户Id为[{}].", LOG_PREFIX, userShare.getId(), e);
             }
         }
-        logger.info("{}job结束.", LOG_PREFIX);
+        logger.info("{}job结束，总执行耗时[{}]ms.", LOG_PREFIX, System.currentTimeMillis() - startTime);
     }
 
     private List<UserShareVO> queryUserTreeList() {
-        List<UserShareVO> treeUserList = new ArrayList<>();
         RestTemplate restTemplate = new RestTemplate();
         JSONObject jsonObj = restTemplate.getForObject(API_TREE_USERS, JSONObject.class);
         if (jsonObj == null) {
-            return treeUserList;
+            return new ArrayList<>();
         }
-        // TODO
         JSONObject resultObject = jsonObj.getJSONObject("data");
         UserShareVO userShareVO = JSONObject.parseObject(resultObject.toJSONString(), UserShareVO.class);
-        treeUserList.add(userShareVO);
-//        JSONArray tuDataJsonArray = jsonObj.getJSONArray("data");
-//        if (tuDataJsonArray != null && tuDataJsonArray.size() > 0) {
-//            for (int i = 0; i < tuDataJsonArray.size(); i++) {
-//                JSONObject resultObject = tuDataJsonArray.getJSONObject(i);
-//                UserShareVO userShareVO = JSONObject.parseObject(resultObject.toJSONString(), UserShareVO.class);
-//                treeUserList.add(userShareVO);
-//            }
-//        }
-        return treeUserList;
+        return userShareVO.getSubUsers();
     }
 
 }
