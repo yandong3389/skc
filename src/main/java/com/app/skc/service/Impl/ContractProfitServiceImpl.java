@@ -6,6 +6,7 @@ import com.app.skc.common.ExchangeCenter;
 import com.app.skc.enums.SysConfigEum;
 import com.app.skc.enums.TransStatusEnum;
 import com.app.skc.enums.TransTypeEum;
+import com.app.skc.enums.UserGradeEnum;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.IncomeMapper;
 import com.app.skc.mapper.TransactionMapper;
@@ -39,6 +40,7 @@ import java.util.*;
 public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income> implements ContractProfitService {
     private static final Logger logger = LoggerFactory.getLogger(ContractProfitServiceImpl.class);
     private static final String LOG_PREFIX = "[合约收益释放] - ";
+    private static final String PARAM_USER_ID = "userId";
     @Autowired
     private IncomeMapper incomeMapper;
     @Autowired
@@ -50,11 +52,15 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     @Autowired
     private ConfigService configService;
     // 用户伞下有效用户列表API
+    @Value("#{'${contract.api-tree-users:http://www.skgame.top/v1/Trade/Get_TreeUsers}'}")
+    private String API_TREE_USERS;
+    // 用户等级列表API
     @Value("#{'${contract.api-grade-list:http://www.skgame.top/v1/Trade/Get_Grade_List}'}")
     private String API_GRADE_LIST;
     // 修改用户有效性API
     @Value("#{'${contract.api-change-user-status:http://www.skgame.top/v1/Trade/ChangeUserStatus}'}")
     private String API_CHANGE_USER_STATUS;
+
     // 用户等级ID、代码映射map
     private static Map<String, String> userGradeCodeMap = new HashMap<>();
 
@@ -122,6 +128,29 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         logger.info("{}用户合约分享树收益计算完毕，树总用户数[{}], 树高[{}]", LOG_PREFIX, allShareMap.size(), allLevelMap.size());
     }
 
+    @Override
+    public Map<String, List<String>> calcUserGrade(String userId) {
+        Map<String, List<String>> gradeUserListMap = new HashMap<>();
+        // 1、查询所有用户树
+        RestTemplate restTemplate = new RestTemplate();
+        JSONObject jsonObj = restTemplate.getForObject(API_TREE_USERS, JSONObject.class);
+        if (jsonObj == null) {
+            return gradeUserListMap;
+        }
+        JSONObject resultObject = jsonObj.getJSONObject("data");
+        UserShareVO userShare = JSONObject.parseObject(resultObject.toJSONString(), UserShareVO.class);
+        // 2、初始数据准备
+        Map<String, UserShareVO> allUserMap = new HashMap<>();
+        fulfillAllMap(allUserMap, userShare);
+        UserShareVO curUserVO = allUserMap.get(userId);
+        Map<Integer, List<UserShareVO>> allLevelMap = new HashMap<>();
+        Map<String, Transaction> allShareTrans = new HashMap<>();
+        fulfillLevelMap(allLevelMap, userShare, 1);
+        fulfillAllShareTransMap(allShareTrans, userShare);
+        // TODO
+        return null;
+    }
+
     /**
      * 社区收益处理
      *
@@ -180,19 +209,19 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         for (UserShareVO userShareVO : directSubUserList) {
             Map<String, List<UserShareVO>> eachCommGradeMap = new HashMap<>();
             fulfillAllGradeMap(eachCommGradeMap, userShareVO);
-            if (!CollectionUtils.isEmpty(eachCommGradeMap.get("king"))) {
+            if (!CollectionUtils.isEmpty(eachCommGradeMap.get(UserGradeEnum.KING.getCode()))) {
                 ++kingCommCnt;
                 continue;
             }
-            if (!CollectionUtils.isEmpty(eachCommGradeMap.get("diamond"))) {
+            if (!CollectionUtils.isEmpty(eachCommGradeMap.get(UserGradeEnum.DIAMOND.getCode()))) {
                 ++diamondCommCnt;
                 continue;
             }
-            if (!CollectionUtils.isEmpty(eachCommGradeMap.get("gold"))) {
+            if (!CollectionUtils.isEmpty(eachCommGradeMap.get(UserGradeEnum.GOLD.getCode()))) {
                 ++goldCommCnt;
                 continue;
             }
-            if (!CollectionUtils.isEmpty(eachCommGradeMap.get("bronze"))) {
+            if (!CollectionUtils.isEmpty(eachCommGradeMap.get(UserGradeEnum.BRONZE.getCode()))) {
                 ++bronzeCommCnt;
             }
         }
@@ -365,7 +394,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     private Income getContractIncome(UserShareVO userShareVO) {
         EntityWrapper<Income> incomeWrapper = new EntityWrapper<>();
         String dateAcct = DateUtil.getCurDate();
-        incomeWrapper.eq("userId", userShareVO.getId());
+        incomeWrapper.eq(PARAM_USER_ID, userShareVO.getId());
         incomeWrapper.eq("dateAcct", dateAcct);
         List<Income> incomeList = incomeMapper.selectList(incomeWrapper);
         if (CollectionUtils.isEmpty(incomeList)) {
@@ -555,7 +584,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     private void inactiveUser(String userId) {
         RestTemplate restTemplate = new RestTemplate();
         Map<String, Object> paramsMap = new HashMap<>();
-        paramsMap.put("userId", userId);
+        paramsMap.put(PARAM_USER_ID, userId);
         paramsMap.put("status", 0);
         restTemplate.put(API_CHANGE_USER_STATUS, paramsMap);
     }

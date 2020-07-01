@@ -1,7 +1,6 @@
 package com.app.skc.service.scheduler;
 
 import com.alibaba.fastjson.JSONObject;
-import com.app.skc.exception.BusinessException;
 import com.app.skc.model.UserShareVO;
 import com.app.skc.service.ContractProfitService;
 import com.app.skc.utils.WebUtils;
@@ -51,7 +50,7 @@ public class ContractProfitScheduler {
         for (UserShareVO userShare : userShareList) {
             try {
                 contractProfitService.userTreeTrans(userShare);
-            } catch (BusinessException e) {
+            } catch (Exception e) {
                 logger.error("{}收益分享树计算失败，根节点用户Id为[{}].", LOG_PREFIX, userShare.getId(), e);
             }
         }
