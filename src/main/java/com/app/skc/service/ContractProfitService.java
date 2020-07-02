@@ -1,5 +1,6 @@
 package com.app.skc.service;
 
+import com.app.skc.exception.BusinessException;
 import com.app.skc.model.UserShareVO;
 
 import java.util.List;
@@ -21,6 +22,6 @@ public interface ContractProfitService {
      * @param userId
      * @return
      */
-    Map<String, List<String>> calcUserGrade(String userId);
+    Map<String, List<String>> calcUserGrade(String userId) throws BusinessException;
 
 }

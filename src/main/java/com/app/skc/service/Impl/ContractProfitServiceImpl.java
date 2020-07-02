@@ -129,13 +129,14 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     }
 
     @Override
-    public Map<String, List<String>> calcUserGrade(String userId) {
+    public Map<String, List<String>> calcUserGrade(String userId) throws BusinessException {
         Map<String, List<String>> gradeUserListMap = new HashMap<>();
         // 1、查询所有用户树
         RestTemplate restTemplate = new RestTemplate();
         JSONObject jsonObj = restTemplate.getForObject(API_TREE_USERS, JSONObject.class);
         if (jsonObj == null) {
-            return gradeUserListMap;
+            logger.error("【用户等级计算】 - 处理失败，用户分享树API调用失败！");
+            throw new BusinessException("用户分享树API调用失败");
         }
         JSONObject resultObject = jsonObj.getJSONObject("data");
         UserShareVO userShare = JSONObject.parseObject(resultObject.toJSONString(), UserShareVO.class);
