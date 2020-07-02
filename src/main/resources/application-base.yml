@@ -104,4 +104,5 @@ contract:
   job-address: 172.19.16.12
   api-grade-list: http://www.skgame.top/v1/Trade/Get_Grade_List
   api-tree-users: http://www.skgame.top/v1/Trade/Get_TreeUsers
-  api-change-user-status: http://www.skgame.top/v1/Trade/ChangeUserStatus
+  api-change-user-grade: http://www.skgame.top/v1/Trade/updateUserLevel
+
