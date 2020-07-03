@@ -23,6 +23,7 @@ public enum SysConfigEum {
     CONTR_MNG_RATE_DIAMOND("CONTR_MNG_RATE_DIAMOND", "合约钻石社区收益率"),
     CONTR_MNG_RATE_KING("CONTR_MNG_RATE_KING", "合约王者社区收益率"),
     CONTR_MNG_RATE_GOD("CONTR_MNG_RATE_GOD", "合约创神社区收益率"),
+    EXCHANGE_FEE("EXCHANGE_FEE", "交易手续费"),
 
     ;
 
