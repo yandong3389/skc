@@ -64,13 +64,11 @@ public class SKWalletScheduler {
 
     @Scheduled(cron = "0 */5 * * * ?")
     public void invest() throws ExecutionException, InterruptedException {
-        logger.info("{}开始监听充值交易...", LOG_PREFIX);
         String address = WebUtils.getHostAddress();
-        logger.info("{}获取本机地址:[{}]", LOG_PREFIX, address);
         if (!address.equals(localAddress)) {
-            logger.info("{}监听充值交易结束,监听客户端地址错误");
             return;
         }
+        logger.info("{}开始监听充值交易...", LOG_PREFIX);
         String contractAddress = InfuraInfo.USDT_CONTRACT_ADDRESS.getDesc();
         Map<String, Object> paramsMap = new HashMap<String, Object>();
         paramsMap.put("wallet_type", WalletEum.USDT.getCode());
