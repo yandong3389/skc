@@ -49,12 +49,13 @@ public class TransactionController {
 	}
 
 	/**
-	 * 内部交易转账
+	 * 内部交易转账 <br/>
+	 * <li/>toWalletAddress 到账钱包地址
+	 * <li/>transferNumber 转账金额
+	 * <li/> userId 用户id
+	 * <li/> walletType 钱包类型
 	 *
-	 * @param toWalletAddress 到账钱包地址
-	 * @param transferNumber 转账金额
-	 * @param userId 用户id
-	 * @param walletType 钱包类型
+	 * @param jsonObject
 	 * @return
 	 */
     @PostMapping("/transfer")

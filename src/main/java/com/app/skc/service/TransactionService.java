@@ -47,6 +47,14 @@ public interface TransactionService extends IService<Transaction> {
     ResponseResult cashOut(String userId, String walletType, String toAddress, String cashOutMoney) throws InterruptedException, IOException, ExecutionException, CipherException, BusinessException;
 
     /**
+     * 提现审核
+     *
+     * @param transId 交易ID
+     * @return ResponseResult
+     */
+    ResponseResult cashOutVerify(String transId) throws BusinessException, InterruptedException, ExecutionException, CipherException, IOException;
+
+    /**
      * 买入
      *
      * @param userId   用户id

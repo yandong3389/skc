@@ -27,7 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.web3j.crypto.CipherException;
-import org.web3j.protocol.Web3j;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -54,8 +53,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     private TransactionMapper transactionMapper;
     @Autowired
     private WalletService walletService;
-    @Autowired
-    private Web3j web3j;
     @Autowired
     private ConfigService configService;
     @Autowired
@@ -216,14 +213,6 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         return entityWrapper;
     }
 
-
-    private void updateTransaction(String transactionId, String transactionStatus) {
-        Transaction transaction = transactionMapper.selectById(transactionId);
-        transaction.setTransStatus(transactionStatus);
-        transaction.setModifyTime(new Date());
-        transactionMapper.updateById(transaction);
-    }
-
     /**
      * 从系统钱包提现出去
      *
@@ -309,6 +298,51 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         }
         saveCashOut(userId, walletType, toAddress, cashOutAmt, fromWallet, fee, needVerify, transHash);
         return ResponseResult.success();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public ResponseResult cashOutVerify(String transId) throws BusinessException, InterruptedException, ExecutionException, CipherException, IOException {
+        Transaction trans = transactionMapper.selectById(transId);
+        String transHash = sysWalletOut(trans.getFromWalletAddress(), trans.getToWalletAddress(), trans.getFromWalletType(), trans.getFromAmount());
+        if (StringUtils.isBlank(transHash)) {
+            ResponseResult.fail("-999", "上链提现交易失败");
+        }
+        // 转出钱包更新
+        Wallet fromWallet = getWallet(trans.getFromWalletAddress(), trans.getFromWalletType());
+        if (fromWallet == null) {
+            return ResponseResult.fail(ApiErrEnum.WALLET_NOT_MAINTAINED);
+        }
+        fromWallet.setBalTotal(fromWallet.getBalTotal().subtract(trans.getFromAmount()).subtract(trans.getFeeAmount()));
+        fromWallet.setBalAvail(fromWallet.getBalAvail().subtract(trans.getFromAmount()).subtract(trans.getFeeAmount()));
+        walletService.updateById(fromWallet);
+        logger.info("审核通过提现交易 - 转出钱包相关余额更新成功。");
+        // 交易记录更新
+        trans.setTransHash(transHash);
+        trans.setTransStatus(TransStatusEnum.SUCCESS.getCode());
+        trans.setModifyTime(new Date());
+        transactionMapper.updateById(trans);
+        logger.info("审核通过提现交易 - 交易记录更新成功。");
+        return ResponseResult.success();
+    }
+
+    /**
+     * 根据地址和类型查询钱包
+     *
+     * @param address
+     * @param walletType
+     * @return
+     */
+    private Wallet getWallet(String address, String walletType) {
+        EntityWrapper<Wallet> walletWrapper = new EntityWrapper<>();
+        walletWrapper.eq(SkcConstants.ADDRESS, address);
+        walletWrapper.eq(SkcConstants.WALLET_TYPE, walletType);
+        List<Wallet> fromWalletRes = walletService.selectList(walletWrapper);
+        if (fromWalletRes.size() > 0) {
+            return fromWalletRes.get(0);
+        } else {
+            return null;
+        }
     }
 
     private void saveCashOut(String userId, String walletType, String toAddress, BigDecimal cashOutAmt, Wallet fromWallet, BigDecimal fee, boolean needVerify, String transHash) {

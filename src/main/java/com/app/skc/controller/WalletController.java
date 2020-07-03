@@ -135,7 +135,6 @@ public class WalletController {
 		}
 
 	}
-
 	private Map <String, Object> buildTransQueryParam(String userId, String walletType, TransTypeEum transType) {
 		if (StringUtils.isBlank(userId) || StringUtils.isBlank(walletType)) {
 			return null;
@@ -152,6 +151,28 @@ public class WalletController {
 		}
 		params.put(SkcConstants.TRANS_STATUS, TransStatusEnum.SUCCESS.getCode());
 		return params;
+	}
+
+	/**
+	 * 提现交易审核
+	 *
+	 * @param transId
+	 * @return
+	 */
+	@GetMapping("/cashOutVerify")
+	@ResponseBody
+	public ResponseResult withdrawVerify(String transId) {
+		if (StringUtils.isBlank(transId)) {
+			return ResponseResult.fail("-999", "请求参数为空");
+		}
+		logger.info("提现交易审核开始，请求参数transId=[{}]", transId);
+		try {
+			return transactionService.cashOutVerify(transId);
+		} catch (Exception e) {
+			logger.error("提现交易审核异常", e);
+			return ResponseResult.fail("-999", e.getMessage());
+		}
+
 	}
 
 }

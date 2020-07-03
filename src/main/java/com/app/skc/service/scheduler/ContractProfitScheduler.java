@@ -30,7 +30,7 @@ public class ContractProfitScheduler {
     @Autowired
     private ContractProfitService contractProfitService;
 
-    @Scheduled(cron = "0 0/2 * * * ?")
+    @Scheduled(cron = "0 1 0 * * ?")
     public void releaseProfit() {
         logger.info("{}job开始...", LOG_PREFIX);
         long startTime = System.currentTimeMillis();
