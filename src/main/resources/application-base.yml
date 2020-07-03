@@ -105,3 +105,4 @@ contract:
   api-grade-list: http://www.skgame.top/v1/Trade/Get_Grade_List
   api-tree-users: http://www.skgame.top/v1/Trade/Get_TreeUsers
   api-change-user-status: http://www.skgame.top/v1/Trade/ChangeUserStatus
+  api-change-user-level: http://www.skgame.top/v1/Trade/ChangeUserStatus
