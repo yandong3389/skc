@@ -161,13 +161,13 @@ public class WalletController {
 	 */
 	@PostMapping("/cashOutVerify")
 	@ResponseBody
-	public ResponseResult withdrawVerify(@RequestParam String transId) {
-		if (StringUtils.isBlank(transId)) {
+	public ResponseResult withdrawVerify(@RequestParam String transId, @RequestParam String opsType) {
+		if (StringUtils.isBlank(transId) || StringUtils.isBlank(opsType)) {
 			return ResponseResult.fail("-999", "请求参数为空");
 		}
-		logger.info("提现交易审核开始，请求参数transId=[{}]", transId);
+		logger.info("提现交易审核开始，请求参数transId=[{}]，opsType=[{}]", transId, opsType);
 		try {
-			return transactionService.cashOutVerify(transId);
+			return transactionService.cashOutVerify(transId, opsType);
 		} catch (Exception e) {
 			logger.error("提现交易审核异常", e);
 			return ResponseResult.fail("-999", e.getMessage());

@@ -302,27 +302,34 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public ResponseResult cashOutVerify(String transId) throws BusinessException, InterruptedException, ExecutionException, CipherException, IOException {
+    public ResponseResult cashOutVerify(String transId, String opsType) throws BusinessException, InterruptedException, ExecutionException, CipherException, IOException {
         Transaction trans = transactionMapper.selectById(transId);
-        String transHash = sysWalletOut(trans.getFromWalletAddress(), trans.getToWalletAddress(), trans.getFromWalletType(), trans.getFromAmount());
-        if (StringUtils.isBlank(transHash)) {
-            ResponseResult.fail("-999", "上链提现交易失败");
+        if (trans == null) {
+            ResponseResult.fail("-999", "交易记录不存在！");
         }
-        // 转出钱包更新
         Wallet fromWallet = getWallet(trans.getFromWalletAddress(), trans.getFromWalletType());
         if (fromWallet == null) {
             return ResponseResult.fail(ApiErrEnum.WALLET_NOT_MAINTAINED);
         }
-        fromWallet.setBalTotal(fromWallet.getBalTotal().subtract(trans.getFromAmount()).subtract(trans.getFeeAmount()));
-        fromWallet.setBalAvail(fromWallet.getBalAvail().subtract(trans.getFromAmount()).subtract(trans.getFeeAmount()));
+        logger.info("审核提现[{}]交易 - 转出钱包相关余额更新成功。", opsType);
+        if ("reject".equals(opsType)) {
+            fromWallet.setBalAvail(fromWallet.getBalAvail().add(trans.getFromAmount()).add(trans.getFeeAmount()));
+            trans.setTransStatus(TransStatusEnum.REJECTED.getCode());
+        } else {
+            fromWallet.setBalTotal(fromWallet.getBalTotal().subtract(trans.getFromAmount()).subtract(trans.getFeeAmount()));
+            String transHash = sysWalletOut(trans.getFromWalletAddress(), trans.getToWalletAddress(), trans.getFromWalletType(), trans.getFromAmount());
+            if (StringUtils.isBlank(transHash)) {
+                ResponseResult.fail("-999", "上链提现交易失败");
+            }
+            trans.setTransHash(transHash);
+            trans.setTransStatus(TransStatusEnum.SUCCESS.getCode());
+        }
+        fromWallet.setBalFreeze(fromWallet.getBalFreeze().subtract(trans.getFromAmount()).subtract(trans.getFeeAmount()));
         walletService.updateById(fromWallet);
-        logger.info("审核通过提现交易 - 转出钱包相关余额更新成功。");
         // 交易记录更新
-        trans.setTransHash(transHash);
-        trans.setTransStatus(TransStatusEnum.SUCCESS.getCode());
         trans.setModifyTime(new Date());
         transactionMapper.updateById(trans);
-        logger.info("审核通过提现交易 - 交易记录更新成功。");
+        logger.info("审核提现[{}]交易 - 交易记录更新成功。", opsType);
         return ResponseResult.success();
     }
 
@@ -357,19 +364,17 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         transaction.setToWalletAddress(toAddress);
         transaction.setFeeAmount(fee);
         if (needVerify) {
+            fromWallet.setBalAvail(fromWallet.getBalAvail().subtract(cashOutAmt).subtract(fee));
+            fromWallet.setBalFreeze(fromWallet.getBalFreeze().add(cashOutAmt).add(fee));
             transaction.setTransStatus(TransStatusEnum.INIT.getCode());
         } else {
-            // 设置转出账户余额
-            BigDecimal fromBalTotal = fromWallet.getBalTotal();
-            BigDecimal fromBalAvail = fromWallet.getBalAvail();
-            fromWallet.setBalTotal(fromBalTotal.subtract(cashOutAmt).subtract(fee));
-            fromWallet.setBalAvail(fromBalAvail.subtract(cashOutAmt).subtract(fee));
-            walletService.updateById(fromWallet);
+            fromWallet.setBalTotal(fromWallet.getBalTotal().subtract(cashOutAmt).subtract(fee));
+            fromWallet.setBalAvail(fromWallet.getBalAvail().subtract(cashOutAmt).subtract(fee));
             logger.info("提现交易 - 钱包相关余额更新成功。");
-            // 交易记录保存
             transaction.setTransHash(transHash);
             transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
         }
+        walletService.updateById(fromWallet);
         transaction.setCreateTime(new Date());
         transaction.setModifyTime(new Date());
         transactionMapper.insert(transaction);

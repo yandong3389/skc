@@ -6,6 +6,7 @@ package com.app.skc.enums;
 public enum TransStatusEnum {
     INIT("INIT", "初始(待审核)"),
     APPROVED("APPROVED", "审核通过"),
+    REJECTED("REJECTED", "驳回"),
     SUCCESS("SUCCESS", "交易成功"),
     FAILED("FAILED", "交易失败"),
     EFFECT("EFFECT", "合约生效"),

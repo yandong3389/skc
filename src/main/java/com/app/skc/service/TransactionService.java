@@ -50,9 +50,10 @@ public interface TransactionService extends IService<Transaction> {
      * 提现审核
      *
      * @param transId 交易ID
+     * @param opsType 审核类型
      * @return ResponseResult
      */
-    ResponseResult cashOutVerify(String transId) throws BusinessException, InterruptedException, ExecutionException, CipherException, IOException;
+    ResponseResult cashOutVerify(String transId, String opsType) throws BusinessException, InterruptedException, ExecutionException, CipherException, IOException;
 
     /**
      * 买入
