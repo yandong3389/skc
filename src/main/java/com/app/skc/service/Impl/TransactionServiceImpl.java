@@ -303,9 +303,9 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     @Transactional(rollbackFor = Exception.class)
     @Override
     public ResponseResult cashOutVerify(String transId, String opsType) throws BusinessException, InterruptedException, ExecutionException, CipherException, IOException {
-        Transaction trans = transactionMapper.selectById(transId);
+        Transaction trans = getTrans(TransTypeEum.OUT.getCode(), transId, TransStatusEnum.INIT.getCode());
         if (trans == null) {
-            ResponseResult.fail("-999", "交易记录不存在！");
+            return ResponseResult.fail("-999", "交易记录不存在！");
         }
         Wallet fromWallet = getWallet(trans.getFromWalletAddress(), trans.getFromWalletType());
         if (fromWallet == null) {
@@ -319,7 +319,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             fromWallet.setBalTotal(fromWallet.getBalTotal().subtract(trans.getFromAmount()).subtract(trans.getFeeAmount()));
             String transHash = sysWalletOut(trans.getFromWalletAddress(), trans.getToWalletAddress(), trans.getFromWalletType(), trans.getFromAmount());
             if (StringUtils.isBlank(transHash)) {
-                ResponseResult.fail("-999", "上链提现交易失败");
+                return ResponseResult.fail("-999", "上链提现交易失败");
             }
             trans.setTransHash(transHash);
             trans.setTransStatus(TransStatusEnum.SUCCESS.getCode());
@@ -352,6 +352,37 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         }
     }
 
+    /**
+     * 获取交易记录
+     *
+     * @param transType
+     * @param transId
+     * @param status
+     * @return
+     */
+    private Transaction getTrans(String transType, String transId, String status) {
+        EntityWrapper<Transaction> transWrapper = new EntityWrapper<>();
+        transWrapper.eq(SkcConstants.TRANS_TYPE, transType);
+        transWrapper.eq("trans_id", transId);
+        transWrapper.eq(SkcConstants.TRANS_STATUS, status);
+        List<Transaction> transRes = transactionMapper.selectList(transWrapper);
+        if (transRes.size() > 0) {
+            return transRes.get(0);
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @param userId
+     * @param walletType
+     * @param toAddress
+     * @param cashOutAmt
+     * @param fromWallet
+     * @param fee
+     * @param needVerify
+     * @param transHash
+     */
     private void saveCashOut(String userId, String walletType, String toAddress, BigDecimal cashOutAmt, Wallet fromWallet, BigDecimal fee, boolean needVerify, String transHash) {
         Transaction transaction = new Transaction();
         transaction.setTransId(BaseUtils.get64UUID());

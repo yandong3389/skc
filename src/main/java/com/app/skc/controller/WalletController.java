@@ -156,12 +156,18 @@ public class WalletController {
 	/**
 	 * 提现交易审核
 	 *
-	 * @param transId
+	 * @param jsonObject
 	 * @return
 	 */
 	@PostMapping("/cashOutVerify")
 	@ResponseBody
-	public ResponseResult withdrawVerify(@RequestParam String transId, @RequestParam String opsType) {
+	public ResponseResult withdrawVerify(@RequestBody JSONObject jsonObject) {
+		String transId = null;
+		String opsType = null;
+		if (jsonObject != null) {
+			transId = jsonObject.getString("transId");
+			opsType = jsonObject.getString("opsType");
+		}
 		if (StringUtils.isBlank(transId) || StringUtils.isBlank(opsType)) {
 			return ResponseResult.fail("-999", "请求参数为空");
 		}
