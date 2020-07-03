@@ -36,18 +36,31 @@ public class KlineServiceImpl extends ServiceImpl<KlineMapper, Kline> implements
     public ResponseResult kline(KlineEum klineEum, Date start, Date end, Integer limit, String type) {
         EntityWrapper<Kline> entityWrapper = new EntityWrapper<>();
         entityWrapper.eq(INTERVAL,klineEum.getCode());
-        if (start != null)
+        if(start != null){
             entityWrapper.ge(START_TIME,start);
-        if (end != null)
+        }else{
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.DATE, -3); //得到前一天
+            Date date = calendar.getTime();
+            entityWrapper.ge(START_TIME,date);
+        }
+        if(end != null){
             entityWrapper.le(END_TIME,end);
+        }else{
+            entityWrapper.le(END_TIME,new Date());
+        }
         entityWrapper.last(" limit " + limit);
         List<Kline> klineList = this.selectList(entityWrapper);
-        if (klineList == null)
+        if (klineList == null){
             klineList = new ArrayList<>();
+        }
         if (end == null || (end.after(new Date()) && klineList.size() < limit)){
             klineList.add(nowKline(klineEum));
-            if (klineList.size() > limit)
+            if(klineList.size() > limit)
+            {
                 klineList.remove(0);
+            }
+
         }
         return ResponseResult.success("成功", packageKline(klineList, type));
     }
@@ -112,7 +125,11 @@ public class KlineServiceImpl extends ServiceImpl<KlineMapper, Kline> implements
         entityWrapper.and().lt(CREATE_TIME,end);
         entityWrapper.and().in(TRANS_TYPE,new String[]{TransTypeEum.BUY.getCode(),TransTypeEum.SELL.getCode()});
         List<Transaction> transactionList = transactionService.selectList(entityWrapper);
+        String previousPirc = previousKline.getEndPrice();
         if (CollectionUtils.isEmpty(transactionList)){
+            kline.setMaxPrice(previousPirc);
+            kline.setMinPrice(previousPirc);
+            kline.setEndPrice(previousPirc);
             return kline;
         }
         kline.setTransNum(transactionList.size());
