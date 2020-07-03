@@ -159,9 +159,9 @@ public class WalletController {
 	 * @param transId
 	 * @return
 	 */
-	@GetMapping("/cashOutVerify")
+	@PostMapping("/cashOutVerify")
 	@ResponseBody
-	public ResponseResult withdrawVerify(String transId) {
+	public ResponseResult withdrawVerify(@RequestParam String transId) {
 		if (StringUtils.isBlank(transId)) {
 			return ResponseResult.fail("-999", "请求参数为空");
 		}
