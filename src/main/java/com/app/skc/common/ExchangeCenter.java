@@ -185,6 +185,7 @@ public class ExchangeCenter {
         } else {
             buyExchange.setQuantity(BigDecimal.ZERO);
             sell.setQuantity(sellQuantity.subtract(buyQuantity));
+            redisUtils.lUpdateIndex(SELL_LEADS,0,JSON.toJSONString(sell));
             transQuantity = buyQuantity;
         }
         Transaction buyTrans = fillTransaction(buyExchange.getUserId(), sell.getUserId(), TransTypeEum.BUY, sellPrice, transQuantity);
@@ -218,6 +219,7 @@ public class ExchangeCenter {
         } else {
             sellExchange.setQuantity(BigDecimal.ZERO);
             buy.setQuantity(buyQuantity.subtract(sellQuantity));
+            redisUtils.lUpdateIndex(BUYING_LEADS,0,JSON.toJSONString(buy));
             transQuantity = sellQuantity;
         }
         Transaction sellTrans = fillTransaction(sellExchange.getUserId(), buy.getUserId(), TransTypeEum.SELL, buyPrice, transQuantity);
