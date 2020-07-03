@@ -51,16 +51,12 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     private ExchangeCenter exchangeCenter;
     @Autowired
     private ConfigService configService;
-    // 用户伞下有效用户列表API
-    @Value("#{'${contract.api-tree-users:http://www.skgame.top/v1/Trade/Get_TreeUsers}'}")
-    private String API_TREE_USERS;
     // 用户等级列表API
     @Value("#{'${contract.api-grade-list:http://www.skgame.top/v1/Trade/Get_Grade_List}'}")
     private String API_GRADE_LIST;
-    // 修改用户有效性API
-    @Value("#{'${contract.api-change-user-status:http://www.skgame.top/v1/Trade/ChangeUserStatus}'}")
-    private String API_CHANGE_USER_STATUS;
-
+    // 修改用户等级API
+    @Value("#{'${contract.api-change-user-grade:http://www.skgame.top/v1/Trade/updateUserLevel}'}")
+    private String API_CHANGE_USER_GRADE;
     // 用户等级ID、代码映射map
     private static Map<String, String> userGradeCodeMap = new HashMap<>();
 
@@ -128,30 +124,6 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         logger.info("{}用户合约分享树收益计算完毕，树总用户数[{}], 树高[{}]", LOG_PREFIX, allShareMap.size(), allLevelMap.size());
     }
 
-    @Override
-    public Map<String, List<String>> calcUserGrade(String userId) throws BusinessException {
-        Map<String, List<String>> gradeUserListMap = new HashMap<>();
-        // 1、查询所有用户树
-        RestTemplate restTemplate = new RestTemplate();
-        JSONObject jsonObj = restTemplate.getForObject(API_TREE_USERS, JSONObject.class);
-        if (jsonObj == null) {
-            logger.error("【用户等级计算】 - 处理失败，用户分享树API调用失败！");
-            throw new BusinessException("用户分享树API调用失败");
-        }
-        JSONObject resultObject = jsonObj.getJSONObject("data");
-        UserShareVO userShare = JSONObject.parseObject(resultObject.toJSONString(), UserShareVO.class);
-        // 2、初始数据准备
-        Map<String, UserShareVO> allUserMap = new HashMap<>();
-        fulfillAllMap(allUserMap, userShare);
-        UserShareVO curUserVO = allUserMap.get(userId);
-        Map<Integer, List<UserShareVO>> allLevelMap = new HashMap<>();
-        Map<String, Transaction> allShareTrans = new HashMap<>();
-        fulfillLevelMap(allLevelMap, userShare, 1);
-        fulfillAllShareTransMap(allShareTrans, userShare);
-        // TODO
-        return null;
-    }
-
     /**
      * 社区收益处理
      *
@@ -171,7 +143,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
             totalContract = totalContract.add(allShareTrans.get(subUser.getId()).getPrice());
         }
         if (directShare >= 10 && totalContract.compareTo(new BigDecimal(80000)) >= 0) {
-            BigDecimal mngRate = getMngRate(directSubUserList, totalContract);
+            BigDecimal mngRate = getMngRate(directSubUserList, totalContract, user);
             BigDecimal mngProfit = BigDecimal.ZERO;
             for (UserShareVO eachSubUser : allSubUserList) {
                 BigDecimal userStaticIn = incomeMap.get(eachSubUser.getId()).getStaticIn();
@@ -197,10 +169,11 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      *
      * @param directSubUserList
      * @param totalContract
+     * @param curUser
      * @return
      * @throws BusinessException
      */
-    private BigDecimal getMngRate(List<UserShareVO> directSubUserList, BigDecimal totalContract) {
+    private BigDecimal getMngRate(List<UserShareVO> directSubUserList, BigDecimal totalContract, UserShareVO curUser) {
         int directShare = directSubUserList.size();
         Config mngRateConfig;
         int bronzeCommCnt = 0;
@@ -228,14 +201,29 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         }
         if (directShare >= 20 && kingCommCnt >= 3 && totalContract.compareTo(new BigDecimal(10000000)) >= 0) {
             mngRateConfig = configService.getByKey(SysConfigEum.CONTR_MNG_RATE_GOD.getCode());
+            if (!UserGradeEnum.GOD.getCode().equals(getGradeCode(curUser.getGradeId()))) {
+                updateUserGrade(curUser.getId(), UserGradeEnum.GOD);
+            }
         } else if (directShare >= 15 && diamondCommCnt >= 3 && totalContract.compareTo(new BigDecimal(3000000)) >= 0) {
             mngRateConfig = configService.getByKey(SysConfigEum.CONTR_MNG_RATE_KING.getCode());
+            if (!UserGradeEnum.KING.getCode().equals(getGradeCode(curUser.getGradeId()))) {
+                updateUserGrade(curUser.getId(), UserGradeEnum.KING);
+            }
         } else if (directShare >= 15 && goldCommCnt >= 3 && totalContract.compareTo(new BigDecimal(800000)) >= 0) {
             mngRateConfig = configService.getByKey(SysConfigEum.CONTR_MNG_RATE_DIAMOND.getCode());
+            if (!UserGradeEnum.DIAMOND.getCode().equals(getGradeCode(curUser.getGradeId()))) {
+                updateUserGrade(curUser.getId(), UserGradeEnum.DIAMOND);
+            }
         } else if (directShare >= 15 && bronzeCommCnt >= 2 && totalContract.compareTo(new BigDecimal(200000)) >= 0) {
             mngRateConfig = configService.getByKey(SysConfigEum.CONTR_MNG_RATE_GOLD.getCode());
+            if (!UserGradeEnum.GOLD.getCode().equals(getGradeCode(curUser.getGradeId()))) {
+                updateUserGrade(curUser.getId(), UserGradeEnum.GOLD);
+            }
         } else {
             mngRateConfig = configService.getByKey(SysConfigEum.CONTR_MNG_RATE_BRONZE.getCode());
+            if (!UserGradeEnum.BRONZE.getCode().equals(getGradeCode(curUser.getGradeId()))) {
+                updateUserGrade(curUser.getId(), UserGradeEnum.BRONZE);
+            }
         }
         return new BigDecimal(mngRateConfig.getConfigValue());
     }
@@ -363,8 +351,6 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
             contractTrans.setTransStatus(TransStatusEnum.UNEFFECT.getCode());
             contractTrans.setModifyTime(new Date());
             transMapper.updateById(contractTrans);
-            // 更改用户为无效用户
-            inactiveUser(contractIncome.getUserId());
         }
         // 钱包更新
         BigDecimal totalProfit = staticProfit.add(shareProfit).add(mngProfit);
@@ -578,16 +564,41 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     }
 
     /**
-     * 将用户置为无效
+     * 修改用户等级
      *
      * @param userId
+     * @param userGradeEnum
      */
-    private void inactiveUser(String userId) {
+    private void updateUserGrade(String userId, UserGradeEnum userGradeEnum) {
+        String gradeId;
+        switch (userGradeEnum) {
+            case BRONZE:
+                gradeId = "1";
+                break;
+            case GOLD:
+                gradeId = "2";
+                break;
+            case DIAMOND:
+                gradeId = "3";
+                break;
+            case KING:
+                gradeId = "4";
+                break;
+            case GOD:
+                gradeId = "5";
+                break;
+            default:
+                gradeId = "0";
+        }
         RestTemplate restTemplate = new RestTemplate();
         Map<String, Object> paramsMap = new HashMap<>();
         paramsMap.put(PARAM_USER_ID, userId);
-        paramsMap.put("status", 0);
-        restTemplate.put(API_CHANGE_USER_STATUS, paramsMap);
+        paramsMap.put("levelId", gradeId);
+        try {
+            restTemplate.put(API_CHANGE_USER_GRADE, paramsMap);
+        } catch (Exception e) {
+            logger.error("{}用户[{}]等级更新失败，目标等级[{}]的ID为[{}].", LOG_PREFIX, userId, userGradeEnum.getCode(), gradeId, e);
+        }
     }
 
 }
