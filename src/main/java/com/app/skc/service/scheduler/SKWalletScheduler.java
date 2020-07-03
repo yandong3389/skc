@@ -84,7 +84,6 @@ public class SKWalletScheduler {
         String clientVersion = web3ClientVersion.getWeb3ClientVersion();
         System.out.println("version=" + clientVersion);
         for (Wallet wallet : wallets) {
-            logger.info("{}开始钱包[{}]充值交易", LOG_PREFIX, wallet.getAddress());
             try {
                 BigDecimal balance = getBalance(web3j, wallet.getAddress(), contractAddress);
                 if (balance.doubleValue() > (double) 0) {
@@ -92,14 +91,14 @@ public class SKWalletScheduler {
                     if (ethBalance.doubleValue() <= 0.001) {
                             logger.info("{}钱包[{}]充值eth余额不足，当前余额[{}].", LOG_PREFIX, wallet.getAddress(), ethBalance.doubleValue());
                         //转手续费
-                        Credentials credentials = WalletUtils.loadCredentials("", sysWalletPath);
+                            Credentials credentials = WalletUtils.loadCredentials("", sysWalletPath);
                             Transfer.sendFunds(web3j, credentials, wallet.getAddress(), new BigDecimal(3), Convert.Unit.FINNEY).send();
                             logger.info("{}钱包[{}]充值eth手续费转账成功，待下个批次执行充值.", LOG_PREFIX, wallet.getAddress());
                         } else {
                         //充值
-                            String transHash = transfer(web3j, wallet.getWalletPath(), wallet.getAddress(), walletAddress.getConfigValue(), contractAddress, balance);
+                        logger.info("{}开始钱包[{}]充值交易", LOG_PREFIX, wallet.getAddress());
+                        String transHash = transfer(web3j, wallet.getWalletPath(), wallet.getAddress(), walletAddress.getConfigValue(), contractAddress, balance);
                             if (StringUtils.isNotBlank(transHash)) {
-                                logger.info("{}钱包[{}]充值成功，充值金额[{}].", LOG_PREFIX, wallet.getAddress(), balance.doubleValue());
                                 // 交易记录
                                 Transaction transaction = new Transaction();
                                 transaction.setTransId(BaseUtils.get64UUID());
@@ -114,12 +113,12 @@ public class SKWalletScheduler {
                                 transaction.setCreateTime(new Date());
                                 transaction.setModifyTime(new Date());
                                 transactionMapper.insert(transaction);
-                                logger.info("{}钱包[{}]充值成功，充值金额[{}].", LOG_PREFIX, wallet.getAddress(), balance.doubleValue());
+                                logger.info("{}钱包[{}]充值记录保存成功，充值金额[{}].", LOG_PREFIX, wallet.getAddress(), balance.doubleValue());
                                 // 钱包余额
                                 wallet.setBalAvail(wallet.getBalAvail().add(balance));
                                 wallet.setBalTotal(wallet.getBalTotal().add(balance));
                                 walletMapper.updateById(wallet);
-                                logger.info("{}钱包[{}]充值交易记录、余额更新成功.", LOG_PREFIX, wallet.getAddress());
+                                logger.info("{}钱包[{}]余额更新成功.", LOG_PREFIX, wallet.getAddress());
                             } else {
                                 logger.warn("{}钱包[{}]充值交易失败，交易Hash为[{}].", LOG_PREFIX, wallet.getAddress(), transHash);
                             }
