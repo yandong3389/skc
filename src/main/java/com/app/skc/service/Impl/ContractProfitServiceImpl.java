@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -62,7 +63,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void userTreeTrans(UserShareVO userShare) {
+    public void userTreeTrans(UserShareVO userShare) throws BusinessException {
         // 1、初始数据准备
         Map<String, Income> incomeMap = new HashMap<>();
         Map<String, UserShareVO> allShareMap = new HashMap<>();
@@ -106,7 +107,6 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                 // 2.2 分享收益
                 List<UserShareVO> directSubUserList = dealShareProfit(incomeMap, allShareTrans, user, contractWallet, allSubUserList);
                 if (directSubUserList == null) {
-                    saveProfitInfo(contractTrans, contractWallet, contractIncome, contractIncome.getStaticIn(), BigDecimal.ZERO, BigDecimal.ZERO, false);
                     continue;
                 }
                 // 2.3 社区收益
@@ -119,7 +119,15 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
             eachIncome.setShareIn(eachIncome.getShareIn().multiply(getCurExRate()));
             eachIncome.setManageIn(eachIncome.getManageIn().multiply(getCurExRate()));
             eachIncome.setTotal(eachIncome.getTotal().multiply(getCurExRate()));
-            incomeMapper.insert(eachIncome);
+            try {
+                incomeMapper.insert(eachIncome);
+            } catch (Exception e) {
+                // 主键冲突时为已计算收益，跳过入库
+                if (!(e instanceof DuplicateKeyException)) {
+                    logger.error("{}收益入库异常", LOG_PREFIX, e);
+                    throw new BusinessException("收益入库失败！");
+                }
+            }
         }
         logger.info("{}用户合约分享树收益计算完毕，树总用户数[{}], 树高[{}]", LOG_PREFIX, allShareMap.size(), allLevelMap.size());
     }
@@ -153,11 +161,13 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                     mngProfit = mngProfit.add(userStaticIn.multiply(mngRate));
                 }
             }
-            if (mngProfit.add(contractIncome.getStaticIn()).add(contractIncome.getShareIn()).compareTo(contractWallet.getSurplusContract()) < 0) {
+            BigDecimal tempTotalProfit = mngProfit.add(contractIncome.getStaticIn()).add(contractIncome.getShareIn());
+            if (tempTotalProfit.compareTo(contractWallet.getSurplusContract()) < 0) {
                 contractIncome.setManageIn(mngProfit);
                 saveProfitInfo(contractTrans, contractWallet, contractIncome, contractIncome.getStaticIn(), contractIncome.getShareIn(), contractIncome.getManageIn(), false);
             } else {
-                saveProfitInfo(contractTrans, contractWallet, contractIncome, contractIncome.getStaticIn(), contractIncome.getShareIn(), contractWallet.getSurplusContract().subtract(contractIncome.getStaticIn()).subtract(contractIncome.getShareIn()), true);
+                BigDecimal finalMngProfit = contractWallet.getSurplusContract().subtract(contractIncome.getStaticIn()).subtract(contractIncome.getShareIn());
+                saveProfitInfo(contractTrans, contractWallet, contractIncome, contractIncome.getStaticIn(), contractIncome.getShareIn(), finalMngProfit, true);
             }
         } else {
             saveProfitInfo(contractTrans, contractWallet, contractIncome, contractIncome.getStaticIn(), contractIncome.getShareIn(), BigDecimal.ZERO, false);
@@ -298,10 +308,12 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                     }
                 }
             }
-            if (shareProfit.add(contractIncome.getStaticIn()).compareTo(contractWallet.getSurplusContract()) < 0) {
+            BigDecimal tempTotalProfit = shareProfit.add(contractIncome.getStaticIn());
+            if (tempTotalProfit.compareTo(contractWallet.getSurplusContract()) < 0) {
                 contractIncome.setShareIn(shareProfit);
             } else {
-                saveProfitInfo(contractTrans, contractWallet, contractIncome, contractIncome.getStaticIn(), contractWallet.getSurplusContract().subtract(contractIncome.getStaticIn()), BigDecimal.ZERO, true);
+                BigDecimal finalShareProfit = contractWallet.getSurplusContract().subtract(contractIncome.getStaticIn());
+                saveProfitInfo(contractTrans, contractWallet, contractIncome, contractIncome.getStaticIn(), finalShareProfit, BigDecimal.ZERO, true);
                 return null;
             }
         }
@@ -327,11 +339,11 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         BigDecimal staticProfit = contractTrans.getPrice().multiply(staticRate);
         if (staticProfit.compareTo(contractWallet.getSurplusContract()) < 0) {
             contractIncome.setStaticIn(staticProfit);
+            return false;
         } else {
             saveProfitInfo(contractTrans, contractWallet, contractIncome, contractWallet.getSurplusContract(), BigDecimal.ZERO, BigDecimal.ZERO, true);
             return true;
         }
-        return false;
     }
 
     /**
@@ -355,8 +367,10 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         // 钱包更新
         BigDecimal totalProfit = staticProfit.add(shareProfit).add(mngProfit);
         BigDecimal balChange = totalProfit.multiply(getCurExRate());
-        contractWallet.setComsumedContract(contractWallet.getComsumedContract().add(totalProfit));
-        contractWallet.setSurplusContract(contractWallet.getSurplusContract().subtract(totalProfit));
+        BigDecimal consumedConTract = contractWallet.getComsumedContract().add(totalProfit);
+        BigDecimal surplusContract = contractWallet.getSurplusContract().subtract(totalProfit);
+        contractWallet.setComsumedContract(consumedConTract);
+        contractWallet.setSurplusContract(surplusContract);
         contractWallet.setBalTotal(contractWallet.getBalTotal().add(balChange));
         contractWallet.setBalAvail(contractWallet.getBalAvail().add(balChange));
         contractWallet.setModifyTime(new Date());
