@@ -8,6 +8,7 @@ import com.app.skc.mapper.TransactionMapper;
 import com.app.skc.model.Transaction;
 import com.app.skc.model.Wallet;
 import com.app.skc.model.system.Config;
+import com.app.skc.service.FeeService;
 import com.app.skc.service.TransactionService;
 import com.app.skc.service.WalletService;
 import com.app.skc.service.system.ConfigService;
@@ -57,6 +58,8 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     private ConfigService configService;
     @Autowired
     private ExchangeCenter exchangeCenter;
+    @Autowired
+    private FeeService feeService;
 
     /**
      * 系统内部转账
@@ -437,10 +440,12 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         }
         //校验可用余额
         BigDecimal price = new BigDecimal(priceStr);
-        if (wallet.getBalAvail().compareTo(price.multiply(quantity)) < 0) {
+        BigDecimal buyAmount = price.multiply(quantity);
+        buyAmount = feeService.buyerAmount(buyAmount);
+        if (wallet.getBalAvail().compareTo(buyAmount) < 0) {
             return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
         }
-        freezeBalance(wallet,price.multiply(quantity));
+        freezeBalance(wallet, buyAmount);
         List<Transaction> transactions = exchangeCenter.buy(userId, price, quantity);
         ResponseResult result = ResponseResult.success();
         result.setData(transactions);
