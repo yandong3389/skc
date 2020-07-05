@@ -24,7 +24,7 @@ public class KLineScheduler {
 
     @Autowired
     private KlineService klineService;
-    @Value("${recharge.local-address}")
+    @Value("${recharge.k-line-address}")
     private String localAddress;
     /**
      * 每15分钟执行一次 , 保存上一组K线数据
@@ -32,7 +32,7 @@ public class KLineScheduler {
     @Scheduled(cron = "0 */15 * * * ? ")
     public void kline(){
         String address = WebUtils.getHostAddress();
-        if (!address.equals(localAddress)) {
+        if (address.equals(localAddress)) {
             logger.info("{}开始计算k线数据",LOG_PREFIX);
             Calendar now = Calendar.getInstance();
             now.set(Calendar.SECOND, 0);
