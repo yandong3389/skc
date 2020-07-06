@@ -5,7 +5,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.app.skc.common.ExchangeCenter;
 import com.app.skc.enums.SysConfigEum;
 import com.app.skc.enums.TransStatusEnum;
-import com.app.skc.enums.TransTypeEum;
 import com.app.skc.enums.UserGradeEnum;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.IncomeMapper;
@@ -167,6 +166,34 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
             BigDecimal mngRate = getMngRate(directSubUserList, totalContract, user);
             BigDecimal mngProfit = BigDecimal.ZERO;
             for (UserShareVO eachSubUser : allSubUserList) {
+                int subUserGrade = Integer.parseInt(eachSubUser.getGradeId());
+                if (subUserGrade != 0) {
+                    BigDecimal subUserRate = null;
+                    switch (subUserGrade) {
+                        case 1:
+                            subUserRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_BRONZE.getCode()).getConfigValue());
+                            break;
+                        case 2:
+                            subUserRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_GOLD.getCode()).getConfigValue());
+                            break;
+                        case 3:
+                            subUserRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_DIAMOND.getCode()).getConfigValue());
+                            break;
+                        case 4:
+                            subUserRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_KING.getCode()).getConfigValue());
+                            break;
+                        case 5:
+                            subUserRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_GOD.getCode()).getConfigValue());
+                            break;
+                        default:
+                            subUserRate = BigDecimal.ZERO;
+                    }
+                    mngRate = mngRate.subtract(subUserRate);
+                }
+                if (mngRate.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+
                 BigDecimal userStaticIn = incomeMap.get(eachSubUser.getId()).getStaticIn();
                 if (allShareTrans.get(user.getId()).getPrice().compareTo(allShareTrans.get(eachSubUser.getId()).getPrice()) < 0) {
                     mngProfit = mngProfit.add(userStaticIn.multiply(mngRate).multiply(allShareTrans.get(user.getId()).getPrice().divide(allShareTrans.get(eachSubUser.getId()).getPrice(), RoundingMode.DOWN)));
@@ -454,9 +481,9 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      */
     private Transaction getContractTrans(UserShareVO userShareVO) {
         EntityWrapper<Transaction> transWrapper = new EntityWrapper<>();
-//        transWrapper.eq("from_user_id", userShareVO.getName()); // TODO
+        transWrapper.eq("from_user_id", userShareVO.getName()); // TODO
         transWrapper.eq("from_user_id", userShareVO.getId());
-        transWrapper.eq("trans_type", TransTypeEum.CONTRACT.getCode());
+//        transWrapper.eq("trans_type", TransTypeEum.CONTRACT.getCode());
         transWrapper.eq("trans_status", TransStatusEnum.EFFECT.getCode());
         List<Transaction> transList = transMapper.selectList(transWrapper);
         if (CollectionUtils.isEmpty(transList)) {
