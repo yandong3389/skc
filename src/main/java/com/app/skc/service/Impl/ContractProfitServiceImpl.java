@@ -116,9 +116,22 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         // 3、所有释放收益转换为sk入库
         for (Income eachIncome : incomeMap.values()) {
             eachIncome.setStaticIn(eachIncome.getStaticIn().multiply(getCurExRate()));
-            eachIncome.setShareIn(eachIncome.getShareIn().multiply(getCurExRate()));
-            eachIncome.setManageIn(eachIncome.getManageIn().multiply(getCurExRate()));
-            eachIncome.setTotal(eachIncome.getTotal().multiply(getCurExRate()));
+            if (eachIncome.getShareIn() != null) {
+                eachIncome.setShareIn(eachIncome.getShareIn().multiply(getCurExRate()));
+            } else {
+                eachIncome.setShareIn(BigDecimal.ZERO);
+            }
+            if (eachIncome.getManageIn() != null) {
+                eachIncome.setManageIn(eachIncome.getManageIn().multiply(getCurExRate()));
+            } else {
+                eachIncome.setManageIn(BigDecimal.ZERO);
+            }
+            if (eachIncome.getTotal() != null) {
+                eachIncome.setTotal(eachIncome.getTotal().multiply(getCurExRate()));
+            } else {
+                BigDecimal totalProfit = eachIncome.getStaticIn().add(eachIncome.getShareIn()).add(eachIncome.getManageIn());
+                eachIncome.setTotal(totalProfit);
+            }
             try {
                 incomeMapper.insert(eachIncome);
             } catch (Exception e) {
@@ -161,6 +174,9 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                     mngProfit = mngProfit.add(userStaticIn.multiply(mngRate));
                 }
             }
+//            if(user.getName().equals("B5")) { // TODO
+//                logger.info("{}用户B5社区收益为[{}]", LOG_PREFIX, mngProfit.doubleValue());
+//            }
             BigDecimal tempTotalProfit = mngProfit.add(contractIncome.getStaticIn()).add(contractIncome.getShareIn());
             if (tempTotalProfit.compareTo(contractWallet.getSurplusContract()) < 0) {
                 contractIncome.setManageIn(mngProfit);
@@ -307,6 +323,9 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                         shareProfit = shareProfit.add(subShareProfit);
                     }
                 }
+//                if(user.getName().equals("B5")) { // TODO
+//                    logger.info("{}用户B5第[{}]代分享收益为[{}]", LOG_PREFIX, generation, shareProfit.doubleValue());
+//                }
             }
             BigDecimal tempTotalProfit = shareProfit.add(contractIncome.getStaticIn());
             if (tempTotalProfit.compareTo(contractWallet.getSurplusContract()) < 0) {
@@ -435,6 +454,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      */
     private Transaction getContractTrans(UserShareVO userShareVO) {
         EntityWrapper<Transaction> transWrapper = new EntityWrapper<>();
+//        transWrapper.eq("from_user_id", userShareVO.getName()); // TODO
         transWrapper.eq("from_user_id", userShareVO.getId());
         transWrapper.eq("trans_type", TransTypeEum.CONTRACT.getCode());
         transWrapper.eq("trans_status", TransStatusEnum.EFFECT.getCode());
@@ -575,6 +595,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     private BigDecimal getCurExRate() {
         String price = exchangeCenter.price();
         return new BigDecimal(price);
+//        return new BigDecimal(10); // TODO
     }
 
     /**
