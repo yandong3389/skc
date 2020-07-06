@@ -44,7 +44,8 @@ public class ExchangeCenter {
             return null;
         }
         List<String> strings = redisUtils.lGet(BUYING_LEADS, 0, -1);
-        return mergeList(strings);
+        List<Exchange> exchanges = mergeList(strings);
+        return exchanges.subList(0,Math.min(exchanges.size(),5));
     }
 
     private List<Exchange> mergeList(List<String> exchanges) {
@@ -76,7 +77,7 @@ public class ExchangeCenter {
         List<String> strings = redisUtils.lGet(SELL_LEADS, 0, -1);
         List<Exchange> exchanges = mergeList(strings);
         Collections.reverse(exchanges);
-        return exchanges;
+        return exchanges.subList(Math.max(exchanges.size() - 5 , 0), exchanges.size());
     }
 
     public List<Transaction> buy(String buyUserId, BigDecimal buyPrice, BigDecimal buyQuantity) {
