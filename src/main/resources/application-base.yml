@@ -100,6 +100,7 @@ web3j:
   httpTimeoutSeconds: 600
 recharge:
   local-address: 172.19.16.11
+  k-line-address: 172.19.16.12
 contract:
   job-address: 172.19.16.12
   api-grade-list: http://www.skgame.top/v1/Trade/Get_Grade_List
