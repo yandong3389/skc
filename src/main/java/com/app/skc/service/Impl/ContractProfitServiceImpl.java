@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.app.skc.common.ExchangeCenter;
 import com.app.skc.enums.SysConfigEum;
 import com.app.skc.enums.TransStatusEnum;
+import com.app.skc.enums.TransTypeEum;
 import com.app.skc.enums.UserGradeEnum;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.IncomeMapper;
@@ -481,9 +482,9 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      */
     private Transaction getContractTrans(UserShareVO userShareVO) {
         EntityWrapper<Transaction> transWrapper = new EntityWrapper<>();
-        transWrapper.eq("from_user_id", userShareVO.getName()); // TODO
+//        transWrapper.eq("from_user_id", userShareVO.getName()); // TODO
         transWrapper.eq("from_user_id", userShareVO.getId());
-//        transWrapper.eq("trans_type", TransTypeEum.CONTRACT.getCode());
+        transWrapper.eq("trans_type", TransTypeEum.CONTRACT.getCode());
         transWrapper.eq("trans_status", TransStatusEnum.EFFECT.getCode());
         List<Transaction> transList = transMapper.selectList(transWrapper);
         if (CollectionUtils.isEmpty(transList)) {
@@ -622,7 +623,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     private BigDecimal getCurExRate() {
         String price = exchangeCenter.price();
         return new BigDecimal(price);
-//        return new BigDecimal(10); // TODO
+//        return new BigDecimal(5); // TODO
     }
 
     /**
