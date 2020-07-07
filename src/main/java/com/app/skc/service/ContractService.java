@@ -34,7 +34,7 @@ public interface ContractService extends IService<Contract> {
      * @param userIds
      * @return
      */
-    BigDecimal teamPerformance(List <String> userIds) throws BusinessException;
+    int teamPerformance(List <String> userIds) throws BusinessException;
 
     /**
      * 查询收益列表

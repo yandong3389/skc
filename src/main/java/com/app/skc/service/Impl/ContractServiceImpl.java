@@ -98,8 +98,15 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
      * @param price
      */
     private void saveBuy(String userId, Wallet wallet, BigDecimal price) {
-        BigDecimal contactDouble = new BigDecimal(configService.getByKey(SysConfigEum.CONTRACT_DOUBLE.getCode()).getConfigValue());
         Date date = new Date();
+        BigDecimal contactDouble = null;
+        if (price.equals(new BigDecimal(300))){
+            contactDouble = new BigDecimal(2);
+        }else if (price.equals(new BigDecimal(500))){
+            contactDouble = new BigDecimal(2.5);
+        }else if (price.equals(new BigDecimal(1500))){
+            contactDouble =new BigDecimal(3);
+        }
         //购买
         Transaction transaction = new Transaction();
         transaction.setFromUserId(userId);
@@ -136,13 +143,13 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
      * @return
      */
     @Override
-    public BigDecimal teamPerformance(List <String> userIds) {
+    public int teamPerformance(List <String> userIds) {
         BigDecimal performance = BigDecimal.ZERO;
         Map map = new HashMap();
         for (String userId : userIds) {
             performance = performance.add(queryPerformance(map, userId));
         }
-        return performance;
+        return performance.intValue();
     }
 
     /**
