@@ -1,5 +1,6 @@
 package com.app.skc.service.Impl;
 
+import com.alibaba.fastjson.JSON;
 import com.app.skc.common.Exchange;
 import com.app.skc.common.ExchangeCenter;
 import com.app.skc.enums.*;
@@ -433,11 +434,13 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     @Transactional(rollbackFor = Exception.class)
     @Override
     public ResponseResult buy(String userId, String priceStr, BigDecimal quantity) {
+        logger.info("[交易所 - 买入] 用户id:{} 价格:{} 数量:{}",userId,priceStr,quantity);
         //获取到账钱包
         Wallet wallet = walletService.getWallet(userId,WalletEum.USDT);
         if (wallet == null) {
             return ResponseResult.fail(ApiErrEnum.WALLET_NOT_MAINTAINED);
         }
+        logger.info("[交易所 - 买入] 钱包id:{} 钱包类型:{} 钱包可用余额:{}",wallet.getWalletId(),"USDT",wallet.getBalAvail());
         //校验可用余额
         BigDecimal price = new BigDecimal(priceStr);
         BigDecimal buyAmount = price.multiply(quantity);
@@ -453,20 +456,24 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
     }
 
     private void freezeBalance(Wallet wallet , BigDecimal freeze){
+        logger.info("[交易所 - 冻结余额] 钱包:{} , 冻结数量:{}", JSON.toJSONString(wallet),freeze);
         wallet.setBalFreeze(wallet.getBalFreeze().add(freeze));
         wallet.setBalAvail(wallet.getBalAvail().subtract(freeze));
         wallet.setModifyTime(new Date());
         walletService.updateById(wallet);
+        logger.info("[交易所 - 冻结余额] 冻结后钱包:{}", JSON.toJSONString(wallet));
     }
 
     @Transactional(rollbackFor = Exception.class)
     @Override
     public ResponseResult sell(String userId, String priceStr, BigDecimal quantity) {
+        logger.info("[交易所 - 卖出] 用户id:{} 价格:{} 数量:{}",userId,priceStr,quantity);
         //获取到账钱包
         Wallet wallet = walletService.getWallet(userId,WalletEum.SK);
         if (wallet == null) {
             return ResponseResult.fail(ApiErrEnum.WALLET_NOT_MAINTAINED);
         }
+        logger.info("[交易所 - 卖出] 钱包id:{} 钱包类型:{} 钱包可用余额:{}",wallet.getWalletId(),"SK",wallet.getBalAvail());
         //校验可用余额
         BigDecimal price = new BigDecimal(priceStr);
         if (wallet.getBalAvail().compareTo(quantity) < 0) {
