@@ -8,6 +8,7 @@ import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.WalletMapper;
 import com.app.skc.model.Wallet;
 import com.app.skc.model.system.Config;
+import com.app.skc.service.ContractService;
 import com.app.skc.service.WalletService;
 import com.app.skc.service.system.ConfigService;
 import com.app.skc.utils.BaseUtils;
@@ -77,6 +78,8 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     private ConfigService configService;
     @Autowired
     private static Web3j web3j;
+    @Autowired
+    private ContractService  contractService;
 
     /**
      * 创建钱包
@@ -219,6 +222,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
         if (StringUtils.isBlank(userId) || StringUtils.isBlank(walletType)) {
             return ResponseResult.fail(ApiErrEnum.REQ_PARAM_NOT_NULL);
         }
+        BigDecimal contartNum = contractService.queryContarct(userId);
         EntityWrapper<Wallet> walletWrapper = new EntityWrapper<>();
         walletWrapper.eq("user_id", userId);
         walletWrapper.eq("wallet_type", walletType);
@@ -232,7 +236,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
             wallet.setBalTotal(dbWallet.getBalTotal());
             wallet.setBalAvail(dbWallet.getBalAvail());
             wallet.setBalFreeze(dbWallet.getBalFreeze());
-            wallet.setComsumedContract(dbWallet.getComsumedContract());
+            wallet.setComsumedContract(contartNum);
             wallet.setSurplusContract(dbWallet.getSurplusContract());
             wallet.setModifyTime(dbWallet.getModifyTime());
             return ResponseResult.success().setData(wallet);

@@ -164,6 +164,14 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         return list;
     }
 
+    @Override
+    public BigDecimal queryContarct(String userId) {
+        Map map = new HashMap();
+        BigDecimal contactDouble = new BigDecimal(configService.getByKey(SysConfigEum.CONTRACT_DOUBLE.getCode()).getConfigValue());
+        BigDecimal price = queryPerformance(map,userId);
+        return contactDouble.multiply(price);
+    }
+
     private BigDecimal queryPerformance(Map map, String userId) {
         List <Transaction> transactions;
         map.put(SkcConstants.FROM_USER_ID, userId);
