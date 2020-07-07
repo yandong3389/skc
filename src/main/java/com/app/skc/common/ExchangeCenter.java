@@ -9,6 +9,8 @@ import com.app.skc.model.Wallet;
 import com.app.skc.service.FeeService;
 import com.app.skc.service.WalletService;
 import com.app.skc.utils.RedisUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -21,6 +23,8 @@ import java.util.*;
  */
 @Component
 public class ExchangeCenter {
+
+    private static final Logger logger = LoggerFactory.getLogger(ExchangeCenter.class);
 
     private static final String BUYING_LEADS = "buyingLeads";
     private static final String SELL_LEADS = "sellLeads";
@@ -270,6 +274,7 @@ public class ExchangeCenter {
     }
 
     private Transaction fillTransaction(String fromUserId, String toUserId, TransTypeEum transType, BigDecimal price, BigDecimal quantity) {
+        logger.info("[交易所 - 撮合交易] fromUserId:{} , toUserId:{} , 交易类型:{} , 价格:{} , 数量:{}",fromUserId,toUserId,transType.getDesc(),price,quantity);
         String buUser = transType.equals(TransTypeEum.BUY)?fromUserId:toUserId;
         String sellUser = transType.equals(TransTypeEum.BUY)?toUserId:fromUserId;
         dealBuy(buUser,price,quantity);
@@ -307,29 +312,43 @@ public class ExchangeCenter {
     }
 
     private void dealBuy(String userId, BigDecimal price ,BigDecimal quantity){
+        logger.info("[交易所 - 撮合交易 - 买入方] userId:{} ,价格:{} , 数量:{}",userId,price,quantity);
         BigDecimal amount = price.multiply(quantity);
+        logger.info("[交易所 - 撮合交易 - 买入方] USTD数量:{}",amount);
         amount = feeService.buyerAmount(amount);
+        logger.info("[交易所 - 撮合交易 - 买入方] 扣除手续费后USTD数量:{}",amount);
         Wallet subtractWallet = walletService.getWallet(userId, WalletEum.USDT);
+        logger.info("[交易所 - 撮合交易 - 买入方] USTD钱包:{}",JSON.toJSONString(subtractWallet));
         subtractWallet.setBalFreeze(subtractWallet.getBalFreeze().subtract(amount));
         subtractWallet.setBalTotal(subtractWallet.getBalTotal().subtract(amount));
         walletService.updateById(subtractWallet);
+        logger.info("[交易所 - 撮合交易 - 买入方] 扣除USTD后钱包:{}",JSON.toJSONString(subtractWallet));
         Wallet addWallet = walletService.getWallet(userId, WalletEum.SK);
+        logger.info("[交易所 - 撮合交易 - 买入方] SK钱包:{}",JSON.toJSONString(addWallet));
         addWallet.setBalTotal(addWallet.getBalTotal().add(quantity));
         addWallet.setBalAvail(addWallet.getBalAvail().add(quantity));
         walletService.updateById(addWallet);
+        logger.info("[交易所 - 撮合交易 - 买入方] 增加SK后钱包:{}",JSON.toJSONString(addWallet));
     }
 
     private void dealSell(String userId, BigDecimal price ,BigDecimal quantity){
+        logger.info("[交易所 - 撮合交易 - 卖出方] userId:{} ,价格:{} , 数量:{}",userId,price,quantity);
         BigDecimal amount = price.multiply(quantity);
+        logger.info("[交易所 - 撮合交易 - 卖出方] USTD数量:{}",amount);
         amount = feeService.sellerAmount(amount);
+        logger.info("[交易所 - 撮合交易 - 卖出方] 扣除手续费后USTD数量:{}",amount);
         Wallet addWallet = walletService.getWallet(userId, WalletEum.USDT);
+        logger.info("[交易所 - 撮合交易 - 卖出方] USTD钱包:{}",JSON.toJSONString(addWallet));
         addWallet.setBalTotal(addWallet.getBalTotal().add(amount));
         addWallet.setBalAvail(addWallet.getBalAvail().add(amount));
         walletService.updateById(addWallet);
+        logger.info("[交易所 - 撮合交易 - 卖出方] 增加USTD后钱包:{}",JSON.toJSONString(addWallet));
         Wallet subtractWallet = walletService.getWallet(userId, WalletEum.SK);
+        logger.info("[交易所 - 撮合交易 - 卖出方] SK钱包:{}",JSON.toJSONString(subtractWallet));
         subtractWallet.setBalFreeze(subtractWallet.getBalFreeze().subtract(quantity));
         subtractWallet.setBalTotal(subtractWallet.getBalTotal().subtract(quantity));
         walletService.updateById(subtractWallet);
+        logger.info("[交易所 - 撮合交易 - 卖出方] 扣除SK后钱包:{}",JSON.toJSONString(subtractWallet));
     }
 
     private void unfreezeBalance(Wallet wallet, BigDecimal amount){

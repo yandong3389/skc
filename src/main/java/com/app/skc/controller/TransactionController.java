@@ -62,6 +62,7 @@ public class TransactionController {
 	@ResponseBody
 	public ResponseResult transfer(@RequestBody JSONObject jsonObject)
 	{
+		logger.info("[交易] - 开始内部转账,参数=[{}]",jsonObject.toJSONString());
 		try {
 			if (jsonObject == null) {
 				return ResponseResult.fail(ApiErrEnum.REQ_PARAM_NOT_NULL);
