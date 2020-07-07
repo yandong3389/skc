@@ -98,6 +98,8 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                     contractIncome.setUserId(user.getId());
                     contractIncome.setUserName(user.getName());
                     contractIncome.setContractId(contractTrans.getTransId());
+                    contractIncome.setDateAcct(DateUtil.getCurDate());
+                    contractIncome.setCreateTime(new Date());
                     incomeMap.put(user.getId(), contractIncome);
                 }
                 // 2.1 静态收益
