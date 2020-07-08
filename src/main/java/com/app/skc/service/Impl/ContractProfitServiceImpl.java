@@ -54,25 +54,33 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     private ExchangeCenter exchangeCenter;
     @Autowired
     private ConfigService configService;
-    // 用户等级列表API
+    /**
+     * 用户等级列表API
+     */
     @Value("#{'${contract.api-grade-list:http://www.skgame.top/v1/Trade/Get_Grade_List}'}")
     private String API_GRADE_LIST;
-    // 修改用户等级API
+    /**
+     * 修改用户等级API
+     */
     @Value("#{'${contract.api-change-user-grade:http://www.skgame.top/v1/Trade/updateUserLevel}'}")
     private String API_CHANGE_USER_GRADE;
     // 用户等级ID、代码映射map
     private static Map<String, String> userGradeCodeMap = new HashMap<>();
 
+    /**
+     * 用户分享树收益事物处理
+     *
+     * @param userShare
+     * @throws BusinessException
+     */
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void userTreeTrans(UserShareVO userShare) throws BusinessException {
         // 1、初始数据准备
         Map<String, Income> incomeMap = new HashMap<>();
-        Map<String, UserShareVO> allShareMap = new HashMap<>();
         Map<Integer, List<UserShareVO>> allLevelMap = new HashMap<>();
         fulfillLevelMap(allLevelMap, userShare, 1);
         Map<String, Transaction> allShareTrans = new HashMap<>();
-        fulfillAllMap(allShareMap, userShare);
         fulfillAllShareTransMap(allShareTrans, userShare);
 
         // 2、用户树遍历处理：静态 + 分享 + 社区
@@ -115,12 +123,12 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                     continue;
                 }
                 // 2.2 分享收益
-                List<UserShareVO> directSubUserList = dealShareProfit(incomeMap, allShareTrans, user, contractWallet, allEffSubUserList);
-                if (directSubUserList == null) {
+                List<UserShareVO> effDirectSubUserList = dealShareProfit(incomeMap, allShareTrans, user, contractWallet, allEffSubUserList);
+                if (effDirectSubUserList == null) {
                     continue;
                 }
                 // 2.3 社区收益
-                dealMngProfit(incomeMap, allShareTrans, user, contractTrans, allEffSubUserList, contractWallet, contractIncome, directSubUserList);
+                dealMngProfit(incomeMap, allShareTrans, user, contractTrans, allEffSubUserList, contractWallet, contractIncome, effDirectSubUserList);
             }
         }
         // 3、所有释放收益转换为sk入库
@@ -152,7 +160,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                 }
             }
         }
-        logger.info("{}用户合约分享树收益计算完毕，树总用户数[{}], 树高[{}]", LOG_PREFIX, allShareMap.size(), allLevelMap.size());
+        logger.info("{}用户合约分享树收益计算完毕， 树高[{}]", LOG_PREFIX, allLevelMap.size());
     }
 
     /**
@@ -162,30 +170,27 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      * @param allShareTrans
      * @param user
      * @param contractTrans
-     * @param allSubUserList
+     * @param allEffSubUserList
      * @param contractWallet
      * @param contractIncome
-     * @param directSubUserList
+     * @param effDirectSubUserList
      */
-    private void dealMngProfit(Map<String, Income> incomeMap, Map<String, Transaction> allShareTrans, UserShareVO user, Transaction contractTrans, List<UserShareVO> allSubUserList, Wallet contractWallet, Income contractIncome, List<UserShareVO> directSubUserList) {
-        List<UserShareVO> effDirectSubUserList = new ArrayList<>();
-        for (UserShareVO eachDirectUser : directSubUserList) {
-            if (EFFECTIVE.equals(eachDirectUser.getStatus())) {
-                effDirectSubUserList.add(eachDirectUser);
-            }
-        }
+    private void dealMngProfit(Map<String, Income> incomeMap, Map<String, Transaction> allShareTrans, UserShareVO user, Transaction contractTrans, List<UserShareVO> allEffSubUserList, Wallet contractWallet, Income contractIncome, List<UserShareVO> effDirectSubUserList) {
         int directShare = effDirectSubUserList.size();
         BigDecimal totalContract = allShareTrans.get(user.getId()).getPrice();
-        for (UserShareVO subUser : allSubUserList) {
+        for (UserShareVO subUser : allEffSubUserList) {
             Transaction transaction = allShareTrans.get(subUser.getId());
             if (transaction != null) {
                 totalContract = totalContract.add(transaction.getPrice());
             }
         }
+        List<UserShareVO> absEffSubUserList = new ArrayList<>();
+        fulfillAbsEffSubUserList(absEffSubUserList, user);
+        absEffSubUserList.remove(user);
         if (directShare >= 10 && totalContract.compareTo(new BigDecimal(80000)) >= 0) {
             BigDecimal oriMngRate = getMngRate(effDirectSubUserList, totalContract, user);
             BigDecimal mngProfit = BigDecimal.ZERO;
-            for (UserShareVO eachSubUser : allSubUserList) {
+            for (UserShareVO eachSubUser : absEffSubUserList) {
                 BigDecimal mngRate = new BigDecimal(oriMngRate.toString());
                 int subUserGrade = Integer.parseInt(eachSubUser.getGradeId());
                 if (subUserGrade != 0) {
@@ -237,20 +242,19 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     /**
      * 获取社区收益比例
      *
-     * @param directSubUserList
+     * @param effDirectSubUserList
      * @param totalContract
      * @param curUser
      * @return
-     * @throws BusinessException
      */
-    private BigDecimal getMngRate(List<UserShareVO> directSubUserList, BigDecimal totalContract, UserShareVO curUser) {
-        int directShare = directSubUserList.size();
+    private BigDecimal getMngRate(List<UserShareVO> effDirectSubUserList, BigDecimal totalContract, UserShareVO curUser) {
+        int directShare = effDirectSubUserList.size();
         Config mngRateConfig;
         int bronzeCommCnt = 0;
         int goldCommCnt = 0;
         int diamondCommCnt = 0;
         int kingCommCnt = 0;
-        for (UserShareVO userShareVO : directSubUserList) {
+        for (UserShareVO userShareVO : curUser.getSubUsers()) {
             Map<String, List<UserShareVO>> eachCommGradeMap = new HashMap<>();
             fulfillAllGradeMap(eachCommGradeMap, userShareVO);
             if (!CollectionUtils.isEmpty(eachCommGradeMap.get(UserGradeEnum.KING.getCode()))) {
@@ -383,7 +387,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                 return null;
             }
         }
-        return directSubUserList;
+        return effDirectSubUserList;
     }
 
     /**
@@ -621,18 +625,35 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     }
 
     /**
-     * 获取指定用户下的所有分享子用户（包括用户本身）
+     * 获取指定用户下的所有有效分享子用户（包括用户本身）
      *
-     * @param allSubUserList
+     * @param subUserList
      * @param userShareVO
      */
-    private void fulfillAllEffSubUserList(List<UserShareVO> allSubUserList, UserShareVO userShareVO) {
+    private void fulfillAllEffSubUserList(List<UserShareVO> subUserList, UserShareVO userShareVO) {
         if (EFFECTIVE.equals(userShareVO.getStatus())) {
-            allSubUserList.add(userShareVO);
+            subUserList.add(userShareVO);
         }
         if (!CollectionUtils.isEmpty(userShareVO.getSubUsers())) {
             for (UserShareVO eachSubUser : userShareVO.getSubUsers()) {
-                fulfillAllEffSubUserList(allSubUserList, eachSubUser);
+                fulfillAllEffSubUserList(subUserList, eachSubUser);
+            }
+        }
+    }
+
+    /**
+     * 获取指定用户下的所有绝对有效分享子用户（包括用户本身）
+     *
+     * @param subUserList
+     * @param userShareVO
+     */
+    private void fulfillAbsEffSubUserList(List<UserShareVO> subUserList, UserShareVO userShareVO) {
+        if (EFFECTIVE.equals(userShareVO.getStatus())) {
+            subUserList.add(userShareVO);
+            if (!CollectionUtils.isEmpty(userShareVO.getSubUsers())) {
+                for (UserShareVO eachSubUser : userShareVO.getSubUsers()) {
+                    fulfillAbsEffSubUserList(subUserList, eachSubUser);
+                }
             }
         }
     }
