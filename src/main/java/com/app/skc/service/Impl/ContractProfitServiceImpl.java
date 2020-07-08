@@ -74,6 +74,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         Map<String, Transaction> allShareTrans = new HashMap<>();
         fulfillAllMap(allShareMap, userShare);
         fulfillAllShareTransMap(allShareTrans, userShare);
+
         // 2、用户树遍历处理：静态 + 分享 + 社区
         for (int i = allLevelMap.size(); i > 0; i--) {
             List<UserShareVO> levelShareList = allLevelMap.get(i);
@@ -176,7 +177,10 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         int directShare = effDirectSubUserList.size();
         BigDecimal totalContract = allShareTrans.get(user.getId()).getPrice();
         for (UserShareVO subUser : allSubUserList) {
-            totalContract = totalContract.add(allShareTrans.get(subUser.getId()).getPrice());
+            Transaction transaction = allShareTrans.get(subUser.getId());
+            if (transaction != null) {
+                totalContract = totalContract.add(transaction.getPrice());
+            }
         }
         if (directShare >= 10 && totalContract.compareTo(new BigDecimal(80000)) >= 0) {
             BigDecimal mngRate = getMngRate(directSubUserList, totalContract, user);
