@@ -34,17 +34,6 @@ public class ContractProfitScheduler {
     public void releaseProfit() {
         logger.info("{}job开始...", LOG_PREFIX);
         long startTime = System.currentTimeMillis();
-//        RestTemplate restTemplate = new RestTemplate(); // TODO
-//        JSONObject jsonObj = restTemplate.getForObject(API_TREE_USERS, JSONObject.class);
-//        if (jsonObj != null) {
-//            JSONObject resultObject = jsonObj.getJSONObject("data");
-//            UserShareVO userShareVO = JSONObject.parseObject(resultObject.toJSONString(), UserShareVO.class);
-//            try {
-//                contractProfitService.userTreeTrans(userShareVO);
-//            } catch (Exception e) {
-//                logger.error("{}收益分享树计算失败，根节点用户Id为[{}].", LOG_PREFIX, userShareVO.getId(), e);
-//            }
-//        }
         // 1、过滤非job执行地址
         String curIpAdd = WebUtils.getHostAddress();
         if (!curIpAdd.equals(jobAddress)) {

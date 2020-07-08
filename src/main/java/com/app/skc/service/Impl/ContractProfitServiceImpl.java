@@ -42,6 +42,8 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     private static final Logger logger = LoggerFactory.getLogger(ContractProfitServiceImpl.class);
     private static final String LOG_PREFIX = "[合约收益释放] - ";
     private static final String PARAM_USER_ID = "userId";
+    private static final String EFFECTIVE = "1";
+
     @Autowired
     private IncomeMapper incomeMapper;
     @Autowired
@@ -76,13 +78,18 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         for (int i = allLevelMap.size(); i > 0; i--) {
             List<UserShareVO> levelShareList = allLevelMap.get(i);
             for (UserShareVO user : levelShareList) {
+                // 无效用户直接跳过
+                if (!EFFECTIVE.equals(user.getStatus())) {
+                    continue;
+                }
                 Transaction contractTrans = allShareTrans.get(user.getId());
+                // 无合约记录直接跳过
                 if (contractTrans == null) {
                     continue;
                 }
-                List<UserShareVO> allSubUserList = new ArrayList<>();
-                fulfillAllSubUserList(allSubUserList, user);
-                allSubUserList.remove(user);
+                List<UserShareVO> allEffSubUserList = new ArrayList<>();
+                fulfillAllEffSubUserList(allEffSubUserList, user);
+                allEffSubUserList.remove(user);
                 Wallet contractWallet = getContractWallet(contractTrans);
                 if (contractWallet == null) {
                     continue;
@@ -107,12 +114,12 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                     continue;
                 }
                 // 2.2 分享收益
-                List<UserShareVO> directSubUserList = dealShareProfit(incomeMap, allShareTrans, user, contractWallet, allSubUserList);
+                List<UserShareVO> directSubUserList = dealShareProfit(incomeMap, allShareTrans, user, contractWallet, allEffSubUserList);
                 if (directSubUserList == null) {
                     continue;
                 }
                 // 2.3 社区收益
-                dealMngProfit(incomeMap, allShareTrans, user, contractTrans, allSubUserList, contractWallet, contractIncome, directSubUserList);
+                dealMngProfit(incomeMap, allShareTrans, user, contractTrans, allEffSubUserList, contractWallet, contractIncome, directSubUserList);
             }
         }
         // 3、所有释放收益转换为sk入库
@@ -160,7 +167,13 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      * @param directSubUserList
      */
     private void dealMngProfit(Map<String, Income> incomeMap, Map<String, Transaction> allShareTrans, UserShareVO user, Transaction contractTrans, List<UserShareVO> allSubUserList, Wallet contractWallet, Income contractIncome, List<UserShareVO> directSubUserList) {
-        int directShare = directSubUserList.size();
+        List<UserShareVO> effDirectSubUserList = new ArrayList<>();
+        for (UserShareVO eachDirectUser : directSubUserList) {
+            if (EFFECTIVE.equals(eachDirectUser.getStatus())) {
+                effDirectSubUserList.add(eachDirectUser);
+            }
+        }
+        int directShare = effDirectSubUserList.size();
         BigDecimal totalContract = allShareTrans.get(user.getId()).getPrice();
         for (UserShareVO subUser : allSubUserList) {
             totalContract = totalContract.add(allShareTrans.get(subUser.getId()).getPrice());
@@ -204,9 +217,6 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                     mngProfit = mngProfit.add(userStaticIn.multiply(mngRate));
                 }
             }
-//            if(user.getName().equals("B5")) { // TODO
-//                logger.info("{}用户B5社区收益为[{}]", LOG_PREFIX, mngProfit.doubleValue());
-//            }
             BigDecimal tempTotalProfit = mngProfit.add(contractIncome.getStaticIn()).add(contractIncome.getShareIn());
             if (tempTotalProfit.compareTo(contractWallet.getSurplusContract()) < 0) {
                 contractIncome.setManageIn(mngProfit);
@@ -296,7 +306,13 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      */
     private List<UserShareVO> dealShareProfit(Map<String, Income> incomeMap, Map<String, Transaction> allShareTrans, UserShareVO user, Wallet contractWallet, List<UserShareVO> allSubUserList) {
         List<UserShareVO> directSubUserList = user.getSubUsers();
-        if (CollectionUtils.isEmpty(directSubUserList)) {
+        List<UserShareVO> effDirectSubUserList = new ArrayList<>();
+        for (UserShareVO eachDirectUser : directSubUserList) {
+            if (EFFECTIVE.equals(eachDirectUser.getStatus())) {
+                effDirectSubUserList.add(eachDirectUser);
+            }
+        }
+        if (CollectionUtils.isEmpty(effDirectSubUserList)) {
             return null;
         } else {
             Transaction contractTrans = allShareTrans.get(user.getId());
@@ -311,7 +327,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                 subLevelUserList.add(eachUserVO);
             }
             BigDecimal shareProfit = BigDecimal.ZERO;
-            int directShareNum = directSubUserList.size();
+            int directShareNum = effDirectSubUserList.size();
             int curUserLevel = Integer.parseInt(user.getLevel());
             for (Integer subUserLevel : subLevelMap.keySet()) {
                 int generation = subUserLevel - curUserLevel;
@@ -353,9 +369,6 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                         shareProfit = shareProfit.add(subShareProfit);
                     }
                 }
-//                if(user.getName().equals("B5")) { // TODO
-//                    logger.info("{}用户B5第[{}]代分享收益为[{}]", LOG_PREFIX, generation, shareProfit.doubleValue());
-//                }
             }
             BigDecimal tempTotalProfit = shareProfit.add(contractIncome.getStaticIn());
             if (tempTotalProfit.compareTo(contractWallet.getSurplusContract()) < 0) {
@@ -484,7 +497,6 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      */
     private Transaction getContractTrans(UserShareVO userShareVO) {
         EntityWrapper<Transaction> transWrapper = new EntityWrapper<>();
-//        transWrapper.eq("from_user_id", userShareVO.getName()); // TODO
         transWrapper.eq("from_user_id", userShareVO.getId());
         transWrapper.eq("trans_type", TransTypeEum.CONTRACT.getCode());
         transWrapper.eq("trans_status", TransStatusEnum.EFFECT.getCode());
@@ -608,11 +620,13 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      * @param allSubUserList
      * @param userShareVO
      */
-    private void fulfillAllSubUserList(List<UserShareVO> allSubUserList, UserShareVO userShareVO) {
-        allSubUserList.add(userShareVO);
+    private void fulfillAllEffSubUserList(List<UserShareVO> allSubUserList, UserShareVO userShareVO) {
+        if (EFFECTIVE.equals(userShareVO.getStatus())) {
+            allSubUserList.add(userShareVO);
+        }
         if (!CollectionUtils.isEmpty(userShareVO.getSubUsers())) {
             for (UserShareVO eachSubUser : userShareVO.getSubUsers()) {
-                fulfillAllSubUserList(allSubUserList, eachSubUser);
+                fulfillAllEffSubUserList(allSubUserList, eachSubUser);
             }
         }
     }
@@ -625,7 +639,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     private BigDecimal getCurExRate() {
         String price = exchangeCenter.price();
         return new BigDecimal(price);
-//        return new BigDecimal(5); // TODO
+//        return new BigDecimal(10); // TODO
     }
 
     /**
