@@ -183,9 +183,10 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
             }
         }
         if (directShare >= 10 && totalContract.compareTo(new BigDecimal(80000)) >= 0) {
-            BigDecimal mngRate = getMngRate(directSubUserList, totalContract, user);
+            BigDecimal oriMngRate = getMngRate(effDirectSubUserList, totalContract, user);
             BigDecimal mngProfit = BigDecimal.ZERO;
             for (UserShareVO eachSubUser : allSubUserList) {
+                BigDecimal mngRate = new BigDecimal(oriMngRate.toString());
                 int subUserGrade = Integer.parseInt(eachSubUser.getGradeId());
                 if (subUserGrade != 0) {
                     BigDecimal subUserRate = null;
@@ -213,7 +214,6 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                 if (mngRate.compareTo(BigDecimal.ZERO) <= 0) {
                     continue;
                 }
-
                 BigDecimal userStaticIn = incomeMap.get(eachSubUser.getId()).getStaticIn();
                 if (allShareTrans.get(user.getId()).getPrice().compareTo(allShareTrans.get(eachSubUser.getId()).getPrice()) < 0) {
                     mngProfit = mngProfit.add(userStaticIn.multiply(mngRate).multiply(allShareTrans.get(user.getId()).getPrice().divide(allShareTrans.get(eachSubUser.getId()).getPrice(), RoundingMode.DOWN)));
@@ -501,6 +501,8 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      */
     private Transaction getContractTrans(UserShareVO userShareVO) {
         EntityWrapper<Transaction> transWrapper = new EntityWrapper<>();
+        // TODO
+//        transWrapper.eq("from_user_id", userShareVO.getName());
         transWrapper.eq("from_user_id", userShareVO.getId());
         transWrapper.eq("trans_type", TransTypeEum.CONTRACT.getCode());
         transWrapper.eq("trans_status", TransStatusEnum.EFFECT.getCode());
