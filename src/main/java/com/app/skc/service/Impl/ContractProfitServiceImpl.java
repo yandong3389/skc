@@ -520,21 +520,6 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     }
 
     /**
-     * 递归填充所有分享用户map
-     *
-     * @param allShareMap
-     * @param userShare
-     */
-    private void fulfillAllMap(Map<String, UserShareVO> allShareMap, UserShareVO userShare) {
-        allShareMap.put(userShare.getId(), userShare);
-        if (!CollectionUtils.isEmpty(userShare.getSubUsers())) {
-            for (UserShareVO element : userShare.getSubUsers()) {
-                fulfillAllMap(allShareMap, element);
-            }
-        }
-    }
-
-    /**
      * 递归填充所有分享用户层级map
      *
      * @param allShareLevelMap
