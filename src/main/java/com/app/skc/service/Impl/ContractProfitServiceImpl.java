@@ -184,9 +184,11 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                 totalContract = totalContract.add(transaction.getPrice());
             }
         }
+        int curUserGrade = Integer.parseInt(user.getGradeId());
         List<UserShareVO> absEffSubUserList = new ArrayList<>();
-        fulfillAbsEffSubUserList(absEffSubUserList, user);
-        absEffSubUserList.remove(user);
+        for (UserShareVO eachSubUser : effDirectSubUserList) {
+            fulfillAbsEffSubUserList(absEffSubUserList, eachSubUser, curUserGrade);
+        }
         if (directShare >= 10 && totalContract.compareTo(new BigDecimal(80000)) >= 0) {
             BigDecimal oriMngRate = getMngRate(effDirectSubUserList, totalContract, user);
             BigDecimal mngProfit = BigDecimal.ZERO;
@@ -631,13 +633,15 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      *
      * @param subUserList
      * @param userShareVO
+     * @param curUserGrade
      */
-    private void fulfillAbsEffSubUserList(List<UserShareVO> subUserList, UserShareVO userShareVO) {
-        if (EFFECTIVE.equals(userShareVO.getStatus())) {
+    private void fulfillAbsEffSubUserList(List<UserShareVO> subUserList, UserShareVO userShareVO, int curUserGrade) {
+        int subUserGrade = Integer.parseInt(userShareVO.getGradeId());
+        if (EFFECTIVE.equals(userShareVO.getStatus()) && (subUserGrade == 0 || curUserGrade > subUserGrade)) {
             subUserList.add(userShareVO);
             if (!CollectionUtils.isEmpty(userShareVO.getSubUsers())) {
                 for (UserShareVO eachSubUser : userShareVO.getSubUsers()) {
-                    fulfillAbsEffSubUserList(subUserList, eachSubUser);
+                    fulfillAbsEffSubUserList(subUserList, eachSubUser, curUserGrade);
                 }
             }
         }
