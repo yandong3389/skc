@@ -39,7 +39,7 @@ public class KLineScheduler {
             now.set(Calendar.MILLISECOND, 0);
             Kline kline = klineService.fillKline(KlineEum.M15,DateUtils.addMinutes(now.getTime() , -15),now.getTime());
             klineService.insert(kline);
-            if (now.get(Calendar.HOUR) == 0){
+            if (now.get(Calendar.HOUR) == 8&&now.get(Calendar.MINUTE)==0){
                 Kline dayKline = klineService.fillKline(KlineEum.D1,DateUtils.addDays(now.getTime() , -1),now.getTime());
                 klineService.insert(dayKline);
             }
