@@ -9,12 +9,10 @@ import com.app.skc.enums.TransTypeEum;
 import com.app.skc.enums.UserGradeEnum;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.IncomeMapper;
+import com.app.skc.mapper.TemporaryLevelMapper;
 import com.app.skc.mapper.TransactionMapper;
 import com.app.skc.mapper.WalletMapper;
-import com.app.skc.model.Income;
-import com.app.skc.model.Transaction;
-import com.app.skc.model.UserShareVO;
-import com.app.skc.model.Wallet;
+import com.app.skc.model.*;
 import com.app.skc.model.system.Config;
 import com.app.skc.service.ContractProfitService;
 import com.app.skc.service.system.ConfigService;
@@ -37,6 +35,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 
+import static com.app.skc.utils.SkcConstants.END_TIME;
+
 @Service("contractProfitService")
 public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income> implements ContractProfitService {
     private static final Logger logger = LoggerFactory.getLogger(ContractProfitServiceImpl.class);
@@ -52,9 +52,9 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     @Autowired
     private TransactionMapper transMapper;
     @Autowired
-    private ExchangeCenter exchangeCenter;
-    @Autowired
     private ConfigService configService;
+    @Autowired
+    TemporaryLevelMapper temporaryLevelMapper;
     /**
      * 用户等级列表API
      */
@@ -187,38 +187,35 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                 totalContract = totalContract.add(transaction.getPrice());
             }
         }
+
         int curUserGrade = Integer.parseInt(user.getGradeId());
         List<UserShareVO> absEffSubUserList = new ArrayList<>();
         for (UserShareVO eachSubUser : effDirectSubUserList) {
             fulfillAbsEffSubUserList(absEffSubUserList, eachSubUser, curUserGrade);
         }
-        if (directShare >= 10 && totalContract.compareTo(new BigDecimal(80000)) >= 0) {
-            BigDecimal oriMngRate = getMngRate(effDirectSubUserList, totalContract, user);
+        //获取用户临时等级
+        Integer userTempGrade = getUserTempLevel(user.getId());
+        //如果用户有临时等级或者青铜或以上
+        if ((directShare >= 10 && totalContract.compareTo(new BigDecimal(80000)) >= 0)||userTempGrade!=null) {
+            //如果用户是临时等级
+            BigDecimal oriMngRate;
+            if(userTempGrade!=null){
+                oriMngRate = getUserGradeRate(userTempGrade);
+            }else {
+                oriMngRate = getMngRate(effDirectSubUserList, totalContract, user);
+            }
             BigDecimal mngProfit = BigDecimal.ZERO;
             for (UserShareVO eachSubUser : absEffSubUserList) {
                 BigDecimal mngRate = new BigDecimal(oriMngRate.toString());
                 int subUserGrade = Integer.parseInt(eachSubUser.getGradeId());
+                Integer tempUserGradde = getUserTempLevel(eachSubUser.getId());
+                //判断用户是否有临时等级
+                if (tempUserGradde!=null){
+                    subUserGrade = tempUserGradde;
+                }
                 if (subUserGrade != 0) {
-                    BigDecimal subUserRate = null;
-                    switch (subUserGrade) {
-                        case 1:
-                            subUserRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_BRONZE.getCode()).getConfigValue());
-                            break;
-                        case 2:
-                            subUserRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_GOLD.getCode()).getConfigValue());
-                            break;
-                        case 3:
-                            subUserRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_DIAMOND.getCode()).getConfigValue());
-                            break;
-                        case 4:
-                            subUserRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_KING.getCode()).getConfigValue());
-                            break;
-                        case 5:
-                            subUserRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_GOD.getCode()).getConfigValue());
-                            break;
-                        default:
-                            subUserRate = BigDecimal.ZERO;
-                    }
+                    //获取社区收益率
+                    BigDecimal subUserRate = getUserGradeRate(subUserGrade);
                     mngRate = mngRate.subtract(subUserRate);
                 }
                 if (mngRate.compareTo(BigDecimal.ZERO) <= 0) {
@@ -245,11 +242,55 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     }
 
     /**
+     * 根据用户等级获取社区收益率
+     * @param userGrade 用户等级
+     * @return
+     */
+    private BigDecimal getUserGradeRate(Integer userGrade) {
+        BigDecimal oriMngRate;
+        switch (userGrade) {
+            case 1:
+                oriMngRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_BRONZE.getCode()).getConfigValue());
+                break;
+            case 2:
+                oriMngRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_GOLD.getCode()).getConfigValue());
+                break;
+            case 3:
+                oriMngRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_DIAMOND.getCode()).getConfigValue());
+                break;
+            case 4:
+                oriMngRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_KING.getCode()).getConfigValue());
+                break;
+            case 5:
+                oriMngRate = new BigDecimal(configService.getByKey(SysConfigEum.CONTR_MNG_RATE_GOD.getCode()).getConfigValue());
+                break;
+            default:
+                oriMngRate = BigDecimal.ZERO;
+        }
+        return oriMngRate;
+    }
+
+    private Integer getUserTempLevel(String userId){
+        Integer level;
+        Date now = new Date();
+        EntityWrapper <TemporaryLevel> entityWrapper = new EntityWrapper <>();
+        entityWrapper.gt(END_TIME,now);
+        entityWrapper.eq("user_id",userId);
+        List <TemporaryLevel>list = temporaryLevelMapper.selectList(entityWrapper);
+        if (list.size()>0){
+            level =list.get(0).getUserLevel();
+        }else {
+            level =null;
+        }
+        return level;
+    }
+
+    /**
      * 获取社区收益比例
      *
-     * @param effDirectSubUserList
-     * @param totalContract
-     * @param curUser
+     * @param effDirectSubUserList 直推人数
+     * @param totalContract 合约总量
+     * @param curUser 当前用户
      * @return
      */
     private BigDecimal getMngRate(List<UserShareVO> effDirectSubUserList, BigDecimal totalContract, UserShareVO curUser) {
