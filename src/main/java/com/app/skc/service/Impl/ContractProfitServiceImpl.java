@@ -43,6 +43,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     private static final String LOG_PREFIX = "[合约收益释放] - ";
     private static final String PARAM_USER_ID = "userId";
     private static final String EFFECTIVE = "1";
+    private static BigDecimal RATE = BigDecimal.ZERO;
 
     @Autowired
     private IncomeMapper incomeMapper;
@@ -75,7 +76,9 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void userTreeTrans(UserShareVO userShare) throws BusinessException {
+    public void userTreeTrans(UserShareVO userShare,BigDecimal rate) throws BusinessException {
+        RATE = rate;
+        logger.info("开始处理用户分享树收益,汇率 rate = {}",RATE);
         // 1、初始数据准备
         Map<String, Income> incomeMap = new HashMap<>();
         Map<Integer, List<UserShareVO>> allLevelMap = new HashMap<>();
@@ -653,9 +656,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      * @return
      */
     private BigDecimal getCurExRate() {
-        String price = exchangeCenter.price();
-        return new BigDecimal(price);
-//        return new BigDecimal(10); // TODO
+        return RATE;
     }
 
     /**

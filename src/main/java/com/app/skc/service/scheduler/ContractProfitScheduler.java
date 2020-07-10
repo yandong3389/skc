@@ -1,6 +1,7 @@
 package com.app.skc.service.scheduler;
 
 import com.alibaba.fastjson.JSONObject;
+import com.app.skc.common.ExchangeCenter;
 import com.app.skc.model.UserShareVO;
 import com.app.skc.service.ContractProfitService;
 import com.app.skc.utils.WebUtils;
@@ -14,6 +15,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,9 +32,14 @@ public class ContractProfitScheduler {
     @Autowired
     private ContractProfitService contractProfitService;
 
+    @Autowired
+    private ExchangeCenter exchangeCenter;
+
     @Scheduled(cron = "0 1 0 * * ?")
     public void releaseProfit() {
-        logger.info("{}job开始...", LOG_PREFIX);
+        logger.info("{}合约结算开始...", LOG_PREFIX);
+        BigDecimal rate = new BigDecimal(exchangeCenter.price());
+        logger.info("{}获取最新成交价price = {}",rate);
         long startTime = System.currentTimeMillis();
         // 1、过滤非job执行地址
         String curIpAdd = WebUtils.getHostAddress();
@@ -50,7 +57,7 @@ public class ContractProfitScheduler {
         }
         for (UserShareVO userShare : userShareList) {
             try {
-                contractProfitService.userTreeTrans(userShare);
+                contractProfitService.userTreeTrans(userShare,rate);
             } catch (Exception e) {
                 logger.error("{}收益分享树计算失败，根节点用户Id为[{}].", LOG_PREFIX, userShare.getId(), e);
             }

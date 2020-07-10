@@ -3,6 +3,8 @@ package com.app.skc.service;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.model.UserShareVO;
 
+import java.math.BigDecimal;
+
 public interface ContractProfitService {
 
     /**
@@ -10,6 +12,6 @@ public interface ContractProfitService {
      *
      * @param userShare
      */
-    void userTreeTrans(UserShareVO userShare) throws BusinessException;
+    void userTreeTrans(UserShareVO userShare, BigDecimal rate) throws BusinessException;
 
 }

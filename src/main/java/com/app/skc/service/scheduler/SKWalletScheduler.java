@@ -104,6 +104,10 @@ public class SKWalletScheduler {
                                 transaction.setToWalletType(WalletEum.USDT.getCode());
                                 transaction.setToWalletAddress(wallet.getAddress());
                                 transaction.setToAmount(balance);
+                                transaction.setFromAmount(balance);
+                                transaction.setFromUserId(wallet.getUserId());
+                                transaction.setFromWalletAddress(wallet.getAddress());
+                                transaction.setFromWalletType(WalletEum.USDT.getCode());
                                 transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
                                 transaction.setTransType(TransTypeEum.IN.getCode()); // 4-充值
                                 transaction.setTransHash(transHash);
