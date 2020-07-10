@@ -204,7 +204,7 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
         EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();
         transactionHash = ethSendTransaction.getTransactionHash();
         if (StringUtils.isBlank(transactionHash)) {
-            log.error("{}提现失败:{[]}", ethSendTransaction.getError().getMessage());
+            log.error("{}提现失败:{[]}", JSON.toJSONString(ethSendTransaction));
             throw new BusinessException("提现失败");
         }
         return transactionHash;

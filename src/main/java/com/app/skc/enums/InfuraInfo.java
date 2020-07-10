@@ -7,7 +7,7 @@ public enum InfuraInfo {
     ETH_FINNEY("1000"),
     MDC_ETH("1000000000000000000"),
     USDT_ETH("1000000"),
-    GAS_PRICE("18"),
+    GAS_PRICE("40"),
     GAS_SIZE("100000");
 
 

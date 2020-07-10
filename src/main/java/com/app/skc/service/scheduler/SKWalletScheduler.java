@@ -86,11 +86,11 @@ public class SKWalletScheduler {
                 BigDecimal balance = getBalance(web3j, wallet.getAddress(), contractAddress);
                 if (balance.doubleValue() > (double) 0) {
                     BigDecimal ethBalance = getEthBalance(web3j, wallet.getAddress());
-                    if (ethBalance.doubleValue() <= 0.001) {
+                    if (ethBalance.doubleValue() <= 0.005) {
                             logger.info("{}钱包[{}]充值eth余额不足，当前余额[{}].", LOG_PREFIX, wallet.getAddress(), ethBalance.doubleValue());
                         //转手续费
                             Credentials credentials = WalletUtils.loadCredentials("", sysWalletPath);
-                            Transfer.sendFunds(web3j, credentials, wallet.getAddress(), new BigDecimal(3), Convert.Unit.FINNEY).send();
+                            Transfer.sendFunds(web3j, credentials, wallet.getAddress(), new BigDecimal(4), Convert.Unit.FINNEY).send();
                             logger.info("{}钱包[{}]充值eth手续费转账成功，待下个批次执行充值.", LOG_PREFIX, wallet.getAddress());
                         } else {
                         //充值
@@ -170,6 +170,7 @@ public class SKWalletScheduler {
         }
 
     private String transfer(Web3j web3j, String fromPath, String fromAddress, String toAddress, String contractAddress, BigDecimal trans) throws IOException, CipherException, ExecutionException, InterruptedException {
+        logger.info("{}开始从{}转入系统钱包{},金额={}",LOG_PREFIX,fromAddress,toAddress,trans);
         Credentials credentials = WalletUtils.loadCredentials("", fromPath);
         /*Web3j web3j = Web3j.build(new HttpService(InfuraInfo.INFURA_ADDRESS.getDesc()));*/
         String transactionHash;
@@ -187,13 +188,12 @@ public class SKWalletScheduler {
         Function transfer = new Function("transfer", parametersList, outList);
         String encodedFunction = FunctionEncoder.encode(transfer);
         BigInteger gasPrice = Convert.toWei(new BigDecimal(InfuraInfo.GAS_PRICE.getDesc()), Convert.Unit.GWEI).toBigInteger();
-
         RawTransaction rawTransaction = RawTransaction.createTransaction(nonce, gasPrice,
                 new BigInteger(InfuraInfo.GAS_SIZE.getDesc()), contractAddress, encodedFunction);
         byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, credentials);
         String hexValue = Numeric.toHexString(signedMessage);
-
         EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();
+        logger.info(JSON.toJSONString(ethSendTransaction));
         transactionHash = ethSendTransaction.getTransactionHash();
         return transactionHash;
     }
