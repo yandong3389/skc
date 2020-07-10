@@ -136,19 +136,19 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         }
         // 3、所有释放收益转换为sk入库
         for (Income eachIncome : incomeMap.values()) {
-            eachIncome.setStaticIn(eachIncome.getStaticIn().multiply(getCurExRate()));
+            eachIncome.setStaticIn(eachIncome.getStaticIn().divide(getCurExRate(),2, BigDecimal.ROUND_UP));
             if (eachIncome.getShareIn() != null) {
-                eachIncome.setShareIn(eachIncome.getShareIn().multiply(getCurExRate()));
+                eachIncome.setShareIn(eachIncome.getShareIn().divide(getCurExRate(),2, BigDecimal.ROUND_UP));
             } else {
                 eachIncome.setShareIn(BigDecimal.ZERO);
             }
             if (eachIncome.getManageIn() != null) {
-                eachIncome.setManageIn(eachIncome.getManageIn().multiply(getCurExRate()));
+                eachIncome.setManageIn(eachIncome.getManageIn().divide(getCurExRate(),2, BigDecimal.ROUND_UP));
             } else {
                 eachIncome.setManageIn(BigDecimal.ZERO);
             }
             if (eachIncome.getTotal() != null) {
-                eachIncome.setTotal(eachIncome.getTotal().multiply(getCurExRate()));
+                eachIncome.setTotal(eachIncome.getTotal().divide(getCurExRate(),2, BigDecimal.ROUND_UP));
             } else {
                 BigDecimal totalProfit = eachIncome.getStaticIn().add(eachIncome.getShareIn()).add(eachIncome.getManageIn());
                 eachIncome.setTotal(totalProfit);
@@ -482,7 +482,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         }
         // 钱包更新
         BigDecimal totalProfit = staticProfit.add(shareProfit).add(mngProfit);
-        BigDecimal balChange = totalProfit.multiply(getCurExRate());
+        BigDecimal balChange = totalProfit.divide(getCurExRate(),2, BigDecimal.ROUND_UP);
         BigDecimal consumedConTract = contractWallet.getComsumedContract().add(totalProfit);
         BigDecimal surplusContract = contractWallet.getSurplusContract().subtract(totalProfit);
         contractWallet.setComsumedContract(consumedConTract);
