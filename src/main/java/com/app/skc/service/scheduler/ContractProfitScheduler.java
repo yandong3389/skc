@@ -19,6 +19,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @author Jerry
+ */
 @Configuration
 @EnableScheduling
 public class ContractProfitScheduler {
@@ -26,7 +29,9 @@ public class ContractProfitScheduler {
     private static final String LOG_PREFIX = "[合约收益释放] - ";
     @Value("#{'${contract.job-address:172.19.16.12}'}")
     private String jobAddress;
-    // 用户伞下有效用户列表API
+    /**
+     * 用户伞下有效用户列表API
+     */
     @Value("#{'${contract.api-tree-users:http://www.skgame.top/v1/Trade/Get_TreeUsers}'}")
     private String API_TREE_USERS;
     @Autowired
@@ -41,6 +46,7 @@ public class ContractProfitScheduler {
         BigDecimal rate = new BigDecimal(exchangeCenter.price());
         logger.info("{}获取最新成交价price = {}",rate);
         long startTime = System.currentTimeMillis();
+
         // 1、过滤非job执行地址
         String curIpAdd = WebUtils.getHostAddress();
         if (!curIpAdd.equals(jobAddress)) {
