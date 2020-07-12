@@ -62,7 +62,7 @@ public class SKWalletScheduler {
     @Value("${recharge.local-address}")
     private String localAddress;
 
-    @Scheduled(cron = "0 */5 * * * ?")
+    @Scheduled(cron = "0 */2 * * * ?")
     public void invest() throws ExecutionException, InterruptedException {
         String address = WebUtils.getHostAddress();
         if (!address.equals(localAddress)) {
@@ -86,7 +86,7 @@ public class SKWalletScheduler {
                 BigDecimal balance = getBalance(web3j, wallet.getAddress(), contractAddress);
                 if (balance.doubleValue() > (double) 0) {
                     BigDecimal ethBalance = getEthBalance(web3j, wallet.getAddress());
-                    if (ethBalance.doubleValue() <= 0.005) {
+                    if (ethBalance.doubleValue() <= 0.003) {
                             logger.info("{}钱包[{}]充值eth余额不足，当前余额[{}].", LOG_PREFIX, wallet.getAddress(), ethBalance.doubleValue());
                         //转手续费
                             Credentials credentials = WalletUtils.loadCredentials("", sysWalletPath);
