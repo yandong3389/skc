@@ -488,7 +488,6 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         contractWallet.setBalTotal(contractWallet.getBalTotal().add(balChange));
         contractWallet.setBalAvail(contractWallet.getBalAvail().add(balChange));
         contractWallet.setModifyTime(new Date());
-        contractWallet.setWalletType(WalletEum.SK.getCode());
         walletMapper.updateById(contractWallet);
         // 当日收益记录插入
         contractIncome.setStaticIn(staticProfit);
@@ -531,7 +530,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         EntityWrapper<Wallet> walletWrapper = new EntityWrapper<>();
         walletWrapper.eq("address", trans.getFromWalletAddress());
         if (StringUtils.isNotBlank(trans.getFromWalletType())) {
-            walletWrapper.eq("wallet_type", trans.getFromWalletType());
+            walletWrapper.eq("wallet_type", WalletEum.SK.getCode());
         }
         List<Wallet> walletList = walletMapper.selectList(walletWrapper);
         if (CollectionUtils.isEmpty(walletList)) {
