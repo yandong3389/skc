@@ -98,7 +98,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                 List<UserShareVO> allEffSubUserList = new ArrayList<>();
                 fulfillAllEffSubUserList(allEffSubUserList, user);
                 allEffSubUserList.remove(user);
-                Wallet contractWallet = getContractWallet(contractTrans);
+                Wallet contractWallet = getContractWallet(contractTrans.getFromWalletAddress(), contractTrans.getFromWalletType());
                 if (contractWallet == null) {
                     continue;
                 }
@@ -472,24 +472,29 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      */
     private void saveProfitInfo(Transaction contractTrans, Wallet contractWallet, Income contractIncome, BigDecimal staticProfit, BigDecimal shareProfit, BigDecimal mngProfit, boolean isOutofProfit) {
         if (isOutofProfit) {
-            // 合约交易记录更新
+            // 1、合约交易记录更新
             contractTrans.setTransStatus(TransStatusEnum.UNEFFECT.getCode());
             contractTrans.setModifyTime(new Date());
             transMapper.updateById(contractTrans);
         }
-        // 钱包更新
+        // 2、钱包更新
         BigDecimal totalProfit = staticProfit.add(shareProfit).add(mngProfit);
-        BigDecimal balChange = totalProfit.divide(getCurExRate(),2, BigDecimal.ROUND_UP);
         BigDecimal consumedConTract = contractWallet.getComsumedContract().add(totalProfit);
         BigDecimal surplusContract = contractWallet.getSurplusContract().subtract(totalProfit);
+        // 2.1、合约钱包USTD更新
         contractWallet.setComsumedContract(consumedConTract);
         contractWallet.setSurplusContract(surplusContract);
-        contractWallet.setBalTotal(contractWallet.getBalTotal().add(balChange));
-        contractWallet.setBalAvail(contractWallet.getBalAvail().add(balChange));
         contractWallet.setModifyTime(new Date());
-        contractWallet.setWalletType(WalletEum.SK.getCode());
         walletMapper.updateById(contractWallet);
-        // 当日收益记录插入
+        // 2.2 收益钱包SK更新
+        Wallet skWallet = getContractWallet(contractTrans.getFromUserId(), WalletEum.SK.getCode());
+        BigDecimal balChange = totalProfit.divide(getCurExRate(), 2, BigDecimal.ROUND_UP);
+        skWallet.setBalTotal(skWallet.getBalTotal().add(balChange));
+        skWallet.setBalAvail(skWallet.getBalAvail().add(balChange));
+        skWallet.setModifyTime(new Date());
+        walletMapper.updateById(skWallet);
+
+        // 3、当日收益记录插入
         contractIncome.setStaticIn(staticProfit);
         contractIncome.setShareIn(shareProfit);
         contractIncome.setManageIn(mngProfit);
@@ -521,20 +526,19 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
     }
 
     /**
-     * 获取购买合约钱包
+     * 获取购买合约相关钱包
      *
-     * @param trans
+     * @param walletAdd
+     * @param walletType
      * @return
      */
-    private Wallet getContractWallet(Transaction trans) {
+    private Wallet getContractWallet(String walletAdd, String walletType) {
         EntityWrapper<Wallet> walletWrapper = new EntityWrapper<>();
-        walletWrapper.eq("address", trans.getFromWalletAddress());
-        if (StringUtils.isNotBlank(trans.getFromWalletType())) {
-            walletWrapper.eq("wallet_type", trans.getFromWalletType());
-        }
+        walletWrapper.eq("address", walletAdd);
+        walletWrapper.eq("wallet_type", walletType);
         List<Wallet> walletList = walletMapper.selectList(walletWrapper);
         if (CollectionUtils.isEmpty(walletList)) {
-            logger.info("{}未找到合约记录的关联钱包[{}]，跳过收益计算。", LOG_PREFIX, trans.getFromWalletAddress());
+            logger.info("{}未找到合约记录的关联钱包[{}]，跳过收益计算。", LOG_PREFIX, walletAdd);
             return null;
         } else {
             return walletList.get(0);
