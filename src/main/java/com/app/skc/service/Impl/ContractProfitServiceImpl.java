@@ -3,10 +3,7 @@ package com.app.skc.service.Impl;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.app.skc.common.ExchangeCenter;
-import com.app.skc.enums.SysConfigEum;
-import com.app.skc.enums.TransStatusEnum;
-import com.app.skc.enums.TransTypeEum;
-import com.app.skc.enums.UserGradeEnum;
+import com.app.skc.enums.*;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.IncomeMapper;
 import com.app.skc.mapper.TemporaryLevelMapper;
@@ -36,6 +33,7 @@ import java.math.RoundingMode;
 import java.util.*;
 
 import static com.app.skc.utils.SkcConstants.END_TIME;
+import static com.app.skc.utils.SkcConstants.WALLET_TYPE;
 
 @Service("contractProfitService")
 public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income> implements ContractProfitService {
@@ -490,6 +488,7 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         contractWallet.setBalTotal(contractWallet.getBalTotal().add(balChange));
         contractWallet.setBalAvail(contractWallet.getBalAvail().add(balChange));
         contractWallet.setModifyTime(new Date());
+        contractWallet.setWalletType(WalletEum.SK.getCode());
         walletMapper.updateById(contractWallet);
         // 当日收益记录插入
         contractIncome.setStaticIn(staticProfit);

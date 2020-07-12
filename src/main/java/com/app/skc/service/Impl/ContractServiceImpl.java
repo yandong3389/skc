@@ -174,8 +174,17 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
     @Override
     public BigDecimal queryContarct(String userId) {
         Map map = new HashMap();
-        BigDecimal contactDouble = new BigDecimal(configService.getByKey(SysConfigEum.CONTRACT_DOUBLE.getCode()).getConfigValue());
         BigDecimal price = queryPerformance(map,userId);
+        BigDecimal contactDouble = null;
+        if (price.intValue()==300){
+            contactDouble = new BigDecimal(2);
+        }else if (price.intValue()==500){
+            contactDouble = new BigDecimal(2.5);
+        }else if (price.intValue()==1500){
+            contactDouble =new BigDecimal(3);
+        }else {
+            contactDouble =BigDecimal.ZERO;
+        }
         return contactDouble.multiply(price);
     }
 
