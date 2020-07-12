@@ -2,7 +2,6 @@ package com.app.skc.service.Impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.app.skc.common.ExchangeCenter;
 import com.app.skc.enums.*;
 import com.app.skc.exception.BusinessException;
 import com.app.skc.mapper.IncomeMapper;
@@ -33,7 +32,6 @@ import java.math.RoundingMode;
 import java.util.*;
 
 import static com.app.skc.utils.SkcConstants.END_TIME;
-import static com.app.skc.utils.SkcConstants.WALLET_TYPE;
 
 @Service("contractProfitService")
 public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income> implements ContractProfitService {
@@ -364,11 +362,12 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                 effDirectSubUserList.add(eachDirectUser);
             }
         }
+        Transaction contractTrans = allShareTrans.get(user.getId());
+        Income contractIncome = incomeMap.get(user.getId());
         if (CollectionUtils.isEmpty(effDirectSubUserList)) {
+            saveProfitInfo(contractTrans, contractWallet, contractIncome, contractIncome.getStaticIn(), BigDecimal.ZERO, BigDecimal.ZERO, false);
             return null;
         } else {
-            Transaction contractTrans = allShareTrans.get(user.getId());
-            Income contractIncome = incomeMap.get(user.getId());
             Map<Integer, List<UserShareVO>> subLevelMap = new HashMap<>();
             for (UserShareVO eachUserVO : allSubUserList) {
                 List<UserShareVO> subLevelUserList = subLevelMap.get(Integer.parseInt(eachUserVO.getLevel()));
@@ -550,8 +549,6 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
      */
     private Transaction getContractTrans(UserShareVO userShareVO) {
         EntityWrapper<Transaction> transWrapper = new EntityWrapper<>();
-        // TODO
-//        transWrapper.eq("from_user_id", userShareVO.getName());
         transWrapper.eq("from_user_id", userShareVO.getId());
         transWrapper.eq("trans_type", TransTypeEum.CONTRACT.getCode());
         transWrapper.eq("trans_status", TransStatusEnum.EFFECT.getCode());
