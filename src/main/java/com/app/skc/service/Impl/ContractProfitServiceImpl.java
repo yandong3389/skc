@@ -487,8 +487,10 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
         contractWallet.setModifyTime(new Date());
         walletMapper.updateById(contractWallet);
         // 2.2 收益钱包SK更新
-        Wallet skWallet = getContractWallet(contractTrans.getFromUserId(), WalletEum.SK.getCode());
+        Wallet skWallet = getContractWallet(contractTrans.getFromWalletAddress(), WalletEum.SK.getCode());
         BigDecimal balChange = totalProfit.divide(getCurExRate(), 2, BigDecimal.ROUND_UP);
+        logger.info(JSONObject.toJSONString(balChange));
+        logger.info(JSONObject.toJSONString(skWallet.getBalTotal()));
         skWallet.setBalTotal(skWallet.getBalTotal().add(balChange));
         skWallet.setBalAvail(skWallet.getBalAvail().add(balChange));
         skWallet.setModifyTime(new Date());
