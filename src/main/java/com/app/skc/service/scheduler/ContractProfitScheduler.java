@@ -5,6 +5,7 @@ import com.app.skc.common.ExchangeCenter;
 import com.app.skc.model.UserShareVO;
 import com.app.skc.service.ContractProfitService;
 import com.app.skc.utils.WebUtils;
+import com.app.skc.utils.date.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,21 +41,23 @@ public class ContractProfitScheduler {
     @Autowired
     private ExchangeCenter exchangeCenter;
 
-    @Scheduled(cron = "0 1 0 * * ?")
+    @Scheduled(cron = "0 50 23 * * ?")
     public void releaseProfit() {
         logger.info("{}合约结算开始...", LOG_PREFIX);
-        BigDecimal rate = new BigDecimal(exchangeCenter.price());
-        logger.info("{}获取最新成交价price = {}",rate);
         long startTime = System.currentTimeMillis();
-
         // 1、过滤非job执行地址
         String curIpAdd = WebUtils.getHostAddress();
         if (!curIpAdd.equals(jobAddress)) {
             logger.info("{}非job执行地址[{}], 指定地址:[{}].", LOG_PREFIX, curIpAdd, jobAddress);
             return;
         }
+        // 2、获取成交价格以及收益账期
+        BigDecimal rate = new BigDecimal(exchangeCenter.price());
+        logger.info("{}获取最新成交价price = {}", LOG_PREFIX, rate);
+        String dateAcct = DateUtil.getNextDate();
 
-        // 2、获取分享合约用户树列表
+
+        // 3、获取分享合约用户树列表
         List<UserShareVO> userShareList = queryUserTreeList();
 
         if (CollectionUtils.isEmpty(userShareList)) {
@@ -63,7 +66,7 @@ public class ContractProfitScheduler {
         }
         for (UserShareVO userShare : userShareList) {
             try {
-                contractProfitService.userTreeTrans(userShare,rate);
+                contractProfitService.userTreeTrans(userShare, rate, dateAcct);
             } catch (Exception e) {
                 logger.error("{}收益分享树计算失败，根节点用户Id为[{}].", LOG_PREFIX, userShare.getId(), e);
             }

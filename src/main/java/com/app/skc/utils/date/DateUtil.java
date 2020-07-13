@@ -236,4 +236,16 @@ public class DateUtil {
         return format.format(c.getTime());
     }
 
+    /**
+     * 获取下一日期：yyyyMMdd
+     *
+     * @return
+     */
+    public static String getNextDate() {
+        SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_MONTH, 1);
+        return format.format(calendar.getTime());
+    }
+
 }
