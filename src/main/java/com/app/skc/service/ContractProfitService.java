@@ -5,6 +5,9 @@ import com.app.skc.model.UserShareVO;
 
 import java.math.BigDecimal;
 
+/**
+ * @author Jerry
+ */
 public interface ContractProfitService {
 
     /**
