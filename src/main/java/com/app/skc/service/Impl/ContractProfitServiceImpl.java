@@ -183,30 +183,35 @@ public class ContractProfitServiceImpl extends ServiceImpl<IncomeMapper, Income>
                 totalContract = totalContract.add(transaction.getPrice());
             }
         }
-
+        //获取用户临时等级
+        Integer userTempGrade = getUserTempLevel(user.getId());
         int curUserGrade = Integer.parseInt(user.getGradeId());
+        if (userTempGrade != null) {
+            curUserGrade = userTempGrade.intValue();
+        }
         List<UserShareVO> absEffSubUserList = new ArrayList<>();
         for (UserShareVO eachSubUser : effDirectSubUserList) {
             fulfillAbsEffSubUserList(absEffSubUserList, eachSubUser, curUserGrade);
         }
-        //获取用户临时等级
-        Integer userTempGrade = getUserTempLevel(user.getId());
         //如果用户有临时等级或者青铜或以上
-        if ((directShare >= 10 && totalContract.compareTo(new BigDecimal(80000)) >= 0)||userTempGrade!=null) {
+        if ((directShare >= 10 && totalContract.compareTo(new BigDecimal(80000)) >= 0) || userTempGrade != null) {
             //如果用户是临时等级
             BigDecimal oriMngRate;
-            if(userTempGrade!=null){
+            if (userTempGrade != null) {
                 oriMngRate = getUserGradeRate(userTempGrade);
-            }else {
+            } else {
                 oriMngRate = getMngRate(effDirectSubUserList, totalContract, user);
             }
             BigDecimal mngProfit = BigDecimal.ZERO;
             for (UserShareVO eachSubUser : absEffSubUserList) {
+                if (incomeMap.get(eachSubUser.getId()) == null) {
+                    continue;
+                }
                 BigDecimal mngRate = new BigDecimal(oriMngRate.toString());
                 int subUserGrade = Integer.parseInt(eachSubUser.getGradeId());
                 Integer tempUserGradde = getUserTempLevel(eachSubUser.getId());
                 //判断用户是否有临时等级
-                if (tempUserGradde!=null){
+                if (tempUserGradde != null) {
                     subUserGrade = tempUserGradde;
                 }
                 if (subUserGrade != 0) {
