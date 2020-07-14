@@ -285,7 +285,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         String feeValue = feeConfig.getConfigValue();
         logger.info("提现手续费查询成功，值为[{}]", feeValue);
         BigDecimal fee = new BigDecimal(feeValue);
-        if ((cashOutAmt.doubleValue() + fee.doubleValue()) > fromWallet.getBalAvail().doubleValue()) {
+        if (cashOutAmt.doubleValue() > fromWallet.getBalAvail().doubleValue()) {
             logger.info("提现失败，余额不足，转出金额为[{}], 手续费为[{}]，当前钱包可用余额为[{}]", cashOutAmt.doubleValue(), feeValue, fromWallet.getBalAvail().doubleValue());
             return ResponseResult.fail(ApiErrEnum.NOT_ENOUGH_WALLET);
         }
@@ -321,7 +321,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             trans.setTransStatus(TransStatusEnum.REJECTED.getCode());
         } else {
             fromWallet.setBalTotal(fromWallet.getBalTotal().subtract(trans.getFromAmount()).subtract(trans.getFeeAmount()));
-            String transHash = sysWalletOut(trans.getFromWalletAddress(), trans.getToWalletAddress(), trans.getFromWalletType(), trans.getFromAmount());
+            String transHash = sysWalletOut(trans.getFromWalletAddress(), trans.getToWalletAddress(), trans.getFromWalletType(), trans.getToAmount());
             if (StringUtils.isBlank(transHash)) {
                 return ResponseResult.fail("-999", "上链提现交易失败");
             }
@@ -395,7 +395,7 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
         transaction.setFromWalletType(walletType);
         transaction.setFromWalletAddress(fromWallet.getAddress());
         transaction.setFromAmount(cashOutAmt);
-        transaction.setToAmount(cashOutAmt);
+        transaction.setToAmount(cashOutAmt.subtract(fee));
         transaction.setToWalletAddress(toAddress);
         transaction.setFeeAmount(fee);
         if (needVerify) {
@@ -403,8 +403,8 @@ public class TransactionServiceImpl extends ServiceImpl <TransactionMapper, Tran
             fromWallet.setBalFreeze(fromWallet.getBalFreeze().add(cashOutAmt).add(fee));
             transaction.setTransStatus(TransStatusEnum.INIT.getCode());
         } else {
-            fromWallet.setBalTotal(fromWallet.getBalTotal().subtract(cashOutAmt).subtract(fee));
-            fromWallet.setBalAvail(fromWallet.getBalAvail().subtract(cashOutAmt).subtract(fee));
+            fromWallet.setBalTotal(fromWallet.getBalTotal().subtract(cashOutAmt));
+            fromWallet.setBalAvail(fromWallet.getBalAvail().subtract(cashOutAmt));
             logger.info("提现交易 - 钱包相关余额更新成功。");
             transaction.setTransHash(transHash);
             transaction.setTransStatus(TransStatusEnum.SUCCESS.getCode());
